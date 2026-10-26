@@ -117,6 +117,7 @@ def test_cloud_click_and_hot_topic_filter(site, browser):
     page.wait_for_function(f"document.querySelector('#list-title').textContent.includes({word!r})")
     assert page.input_value("#q") == word
     page.click("#q-clear")
+    page.wait_for_timeout(800)   # let the smooth scroll to the list finish before clicking elsewhere
     if page.locator("#hot .lbl").count():
         page.locator("#hot .lbl").first.click()
         assert "Sujet chaud" in page.inner_text("#active")
