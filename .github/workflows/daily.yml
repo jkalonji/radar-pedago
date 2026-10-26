@@ -1,0 +1,131 @@
+name: Radar Pédago - Collecte quotidienne
+
+# Every day: collect all sources and enrich the new items (LLM). On Monday (Paris time), also rebuild and publish
+# the dashboard. 05:30 UTC = 06:30 in winter / 07:30 in summer in Paris: the dashboard is online before 8:00.
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: "Premier lancement : charger les N derniers jours (0 = collecte normale)"
+        required: false
+        default: '0'
+      publish:
+        description: "Publier le tableau de bord à la fin (sinon : seulement le lundi)"
+        type: boolean
+        required: false
+        default: true
+      no_llm:
+        description: "Sans LLM (classement par règles, sans traduction ni résumé)"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two collections at once: they share the same database.
+concurrency:
+  group: radar-pedago
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check storage is configured
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::SUPABASE_URL is not set: the runner is ephemeral, nothing is kept between runs (no history, no trends)."
+          fi
+
+      - name: Collect and enrich
+        id: collect
+        continue-on-error: true   # a failed collection must not prevent the Monday publication
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ vars.GROQ_MODEL }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          CROSSREF_MAILTO: ${{ vars.CROSSREF_MAILTO }}
+          BACKFILL_DAYS: ${{ github.event.inputs.backfill_days || '0' }}
+          NO_LLM: ${{ github.event.inputs.no_llm || 'false' }}
+        run: |
+          args=""
+          if [ "$BACKFILL_DAYS" != "0" ]; then args="$args --backfill-days $BACKFILL_DAYS"; fi
+          if [ "$NO_LLM" = "true" ]; then args="$args --no-llm"; fi
+          python main.py $args
+
+      - name: Decide whether to publish
+        id: when
+        env:
+          MANUAL_PUBLISH: ${{ github.event.inputs.publish }}
+        run: |
+          if [ "$MANUAL_PUBLISH" = "true" ] || [ "$(TZ=Europe/Paris date +%u)" = "1" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Collecte seule : le tableau de bord est publié le lundi (ou en relançant avec 'publish')."
+          fi
+
+      - name: Cache the embedding model
+        if: steps.when.outputs.publish == 'true'
+        uses: actions/cache@v4
+        with:
+          path: data/models
+          key: embedding-model-paraphrase-multilingual-minilm-l12-v2-q8
+
+      - name: Build the dashboard
+        if: steps.when.outputs.publish == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ vars.GROQ_MODEL }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: python dashboard.py --export --output site/index.html
+
+      - name: Setup Pages
+        if: steps.when.outputs.publish == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: steps.when.outputs.publish == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './site'
+
+      - name: Deploy to GitHub Pages
+        if: steps.when.outputs.publish == 'true'
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Fail the run if the collection failed
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo "::error::La collecte a échoué (voir l'étape 'Collect and enrich'). Le tableau de bord a tout de même été publié si c'était prévu."
+          exit 1

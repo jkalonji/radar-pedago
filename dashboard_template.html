@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar Pédago</title>
+<meta name="description" content="Veille de l'équipe d'ingénierie pédagogique : design UX, pédagogie, recherche, enseignement supérieur, benchmark des écoles, innovation et IA.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23104281'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2386b6ef' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme:light;
+  --plane:#f9f9f7;--surface:#fcfcfb;--raised:#ffffff;--ink:#0b0b0b;--ink2:#52514e;--muted:#6f6e69;--axis:#898781;
+  --grid:#e1e0d9;--base:#c3c2b7;--border:rgba(11,11,11,.10);--hover:rgba(11,11,11,.045);--brand:#104281;--brand-ink:#ffffff;
+  --focus:#2a78d6;--seq-1:#cde2fb;--seq-2:#9ec5f4;--seq-3:#6da7ec;--seq-4:#3987e5;--seq-5:#256abf;--seq-6:#184f95;
+  --dom-1:#2a78d6;--dom-2:#eb6834;--dom-3:#1baf7a;--dom-4:#eda100;--dom-5:#e87ba4;--dom-6:#008300;--bar:#86b6ef;
+  --shadow:0 1px 2px rgba(11,11,11,.05),0 4px 14px rgba(11,11,11,.04);
+}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+  color-scheme:dark;
+  --plane:#0d0d0d;--surface:#1a1a19;--raised:#20201f;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a29b;--axis:#898781;
+  --grid:#2c2c2a;--base:#383835;--border:rgba(255,255,255,.10);--hover:rgba(255,255,255,.06);--brand:#184f95;--brand-ink:#ffffff;
+  --focus:#6da7ec;--seq-1:#1c2b3d;--seq-2:#104281;--seq-3:#1c5cab;--seq-4:#2a78d6;--seq-5:#5598e7;--seq-6:#9ec5f4;
+  --dom-1:#3987e5;--dom-2:#d95926;--dom-3:#199e70;--dom-4:#c98500;--dom-5:#d55181;--dom-6:#008300;--bar:#256abf;
+  --shadow:none;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --plane:#0d0d0d;--surface:#1a1a19;--raised:#20201f;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a29b;--axis:#898781;
+  --grid:#2c2c2a;--base:#383835;--border:rgba(255,255,255,.10);--hover:rgba(255,255,255,.06);--brand:#184f95;--brand-ink:#ffffff;
+  --focus:#6da7ec;--seq-1:#1c2b3d;--seq-2:#104281;--seq-3:#1c5cab;--seq-4:#2a78d6;--seq-5:#5598e7;--seq-6:#9ec5f4;
+  --dom-1:#3987e5;--dom-2:#d95926;--dom-3:#199e70;--dom-4:#c98500;--dom-5:#d55181;--dom-6:#008300;--bar:#256abf;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:150px}
+body{margin:0;background:var(--plane);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-underline-offset:2px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* header */
+header.top{background:var(--brand);color:var(--brand-ink)}
+header.top .wrap{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:22px;padding-bottom:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{flex:none}
+.brand h1{margin:0;font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;font-size:13px;opacity:.85}
+.meta{font-size:12.5px;opacity:.85;text-align:right}
+
+/* sticky controls */
+.controls{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--plane) 92%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.controls .wrap{padding-top:12px;padding-bottom:10px;display:grid;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.search{position:relative;flex:1 1 360px;min-width:0}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search input{width:100%;border:1px solid var(--base);background:var(--raised);color:var(--ink);border-radius:10px;padding:10px 36px 10px 38px;font:inherit;font-size:15px}
+.search input::placeholder{color:var(--muted)}
+.search input::-webkit-search-cancel-button{display:none}
+.search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:6px}
+.search .clear:hover{background:var(--hover)}
+.seg{display:inline-flex;border:1px solid var(--base);border-radius:10px;overflow:hidden;background:var(--raised)}
+.seg button{border:0;background:none;padding:9px 12px;cursor:pointer;font-size:13.5px;color:var(--ink2);white-space:nowrap}
+.seg button+button{border-left:1px solid var(--grid)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);font-weight:600}
+select{border:1px solid var(--base);background:var(--raised);color:var(--ink);border-radius:10px;padding:9px 10px;font:inherit;font-size:13.5px;max-width:100%}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--base);background:var(--raised);border-radius:999px;padding:5px 12px 5px 10px;cursor:pointer;font-size:13.5px;color:var(--ink);white-space:nowrap}
+.tag:hover{background:var(--hover)}
+.tag .n{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.tag[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:600}
+.tag.sub{font-size:12.5px;padding:3px 10px;border-style:dashed}
+.tag.sub[aria-pressed="true"]{border-style:solid}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
+.hint{font-size:12.5px;color:var(--muted)}
+.hint b{color:var(--ink2);font-weight:600}
+#search-status:empty{display:none}
+.linkbtn{border:0;background:none;padding:2px 4px;cursor:pointer;color:var(--ink2);text-decoration:underline;text-underline-offset:2px;font-size:12.5px}
+.active{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.active:empty{display:none}
+.demo{background:#fff4d6;color:#4a3500;border-bottom:1px solid #eda100;font-size:13px;padding:8px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--hover);border:1px solid var(--border);border-radius:999px;padding:2px 6px 2px 10px;font-size:12.5px}
+.chip button{border:0;background:none;cursor:pointer;color:var(--muted);padding:0 4px;border-radius:999px;line-height:1.4}
+.chip button:hover{color:var(--ink);background:var(--hover)}
+
+/* layout */
+main{padding-top:18px;padding-bottom:30px}
+section{margin:0 0 22px}
+h2{font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:-.005em}
+.sub-h{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.cols{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);min-width:0}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.kpi .l{font-size:12.5px;color:var(--ink2)}
+.kpi .s{font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13.5px;padding:8px 0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--raised);color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.14);min-width:150px;max-width:280px;opacity:0;transition:opacity .08s}
+.tip.on{opacity:1}
+.tip .h{font-weight:700;margin-bottom:4px}
+.tip .r{display:flex;align-items:center;gap:6px;justify-content:space-between}
+.tip .r span:first-child{display:inline-flex;align-items:center;gap:6px}
+.tip .r b{font-variant-numeric:tabular-nums}
+
+/* cloud */
+.cloud{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline;justify-content:center;padding:6px 0;min-height:170px}
+.cloud button{border:0;background:none;padding:0 2px;cursor:pointer;line-height:1.2;border-radius:4px}
+.cloud button:hover{text-decoration:underline;background:var(--hover)}
+
+/* lists */
+.topic{padding:10px 0;border-bottom:1px solid var(--grid)}
+.topic:last-child{border-bottom:0}
+.topic .lbl{border:0;background:none;padding:0;cursor:pointer;font-weight:600;text-align:left;display:inline-flex;align-items:center;gap:8px}
+.topic .lbl:hover{text-decoration:underline}
+.topic .m{font-size:12.5px;color:var(--muted)}
+.topic ul{margin:4px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink2)}
+.topic li a{text-decoration:none}.topic li a:hover{text-decoration:underline}
+.term{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--grid)}
+.term:last-child{border-bottom:0}
+.term button{border:0;background:none;padding:0;cursor:pointer;font-weight:600;text-align:left;flex:1;min-width:0}
+.term button:hover{text-decoration:underline}
+.term .x{font-size:12.5px;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--grid);vertical-align:middle}
+th{font-size:12px;font-weight:600;color:var(--ink2)}
+td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--hover)}
+tr.click.on td{background:var(--hover);font-weight:600}
+.hbar{height:10px;border-radius:0 4px 4px 0;background:var(--bar);min-width:2px}
+.heat{min-width:860px}.heat th{text-align:center;vertical-align:bottom}.heat th:first-child{min-width:190px;text-align:left}.heat th:last-child{text-align:right}.heat td.cell{height:38px;text-align:center;font-variant-numeric:tabular-nums;border:2px solid var(--surface);border-radius:6px;min-width:44px}
+.scroll{overflow-x:auto}
+
+/* articles */
+.list-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.art{padding:14px 0;border-bottom:1px solid var(--grid)}
+.art:last-child{border-bottom:0}
+.art .top{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:12.5px;color:var(--ink2)}
+.dchip{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink)}
+.art h3{font-size:15.5px;font-weight:600;margin:4px 0 2px;line-height:1.35}
+.art h3 a{text-decoration:none}.art h3 a:hover{text-decoration:underline}
+.art .orig{font-size:12.5px;color:var(--muted);margin:0 0 4px;font-style:italic}
+.art .sm{margin:4px 0 0;color:var(--ink2);font-size:14px}
+.art .src{font-size:12.5px;color:var(--muted)}
+.score{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+button.more{margin:14px auto 0;display:block;background:var(--raised);border:1px solid var(--base);border-radius:10px;padding:9px 22px;cursor:pointer}
+button.more:hover{background:var(--hover)}
+footer{color:var(--muted);font-size:12.5px;padding:8px 0 40px}
+footer p{margin:4px 0}
+
+@media (max-width:900px){.cols{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){
+  html{scroll-padding-top:220px}
+  .brand h1{font-size:20px}.meta{text-align:left}
+  .kpi .v{font-size:23px}.card{padding:14px}
+  .controls{position:static}
+  .seg button{padding:8px 9px}
+}
+@media (forced-colors:active){.sw,.hbar{forced-color-adjust:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand">
+    <svg width="38" height="38" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="rgba(255,255,255,.12)"/><circle cx="16" cy="16" r="10" fill="none" stroke="#86b6ef" stroke-width="2"/><circle cx="16" cy="16" r="5" fill="none" stroke="#cde2fb" stroke-width="2"/><path d="M16 16 L26 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.2" fill="#fff"/></svg>
+    <div><h1>Radar Pédago</h1><p>Veille de l'ingénierie pédagogique</p></div>
+  </div>
+  <div class="meta" id="meta"></div>
+</div></header>
+
+<div class="demo" id="demo" hidden><div class="wrap">Données de démonstration : contenus fictifs, générés pour prévisualiser le tableau de bord.</div></div>
+
+<div class="controls" id="controls"><div class="wrap">
+  <div class="row">
+    <div class="search" role="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <label class="sr" for="q">Rechercher dans la veille</label>
+      <input type="search" id="q" autocomplete="off" placeholder="Rechercher un sujet : évaluation par compétences, IA générative, classe inversée…">
+      <button class="clear" id="q-clear" type="button" aria-label="Effacer la recherche" hidden>✕</button>
+    </div>
+    <div class="seg" id="period" role="group" aria-label="Période"></div>
+    <label class="sr" for="type">Type de contenu</label>
+    <select id="type"></select>
+  </div>
+  <div class="tags" id="tags" role="group" aria-label="Sujets"></div>
+  <div class="tags" id="subtags" role="group" aria-label="Catégories" hidden></div>
+  <div class="row" style="justify-content:space-between">
+    <div class="active" id="active"></div>
+    <div class="hint" id="search-status" aria-live="polite"></div>
+  </div>
+</div></div>
+
+<main class="wrap">
+  <section aria-label="Chiffres clés"><div class="grid kpis" id="kpis"></div></section>
+
+  <section>
+    <div class="card">
+      <h2>Tendances par sujet</h2>
+      <p class="sub-h" id="trend-sub">Nombre de contenus par semaine</p>
+      <div class="chart" id="trend"></div>
+      <div class="legend" id="trend-legend"></div>
+    </div>
+  </section>
+
+  <section class="grid cols">
+    <div class="card">
+      <h2>Nuage de mots</h2>
+      <p class="sub-h">Mots les plus fréquents dans les titres de la sélection · clic = rechercher ce mot</p>
+      <div class="cloud" id="cloud"></div>
+    </div>
+    <div class="card">
+      <h2>Sujets chauds de la semaine</h2>
+      <p class="sub-h">Sujets repris par plusieurs sources ces 7 derniers jours · clic = voir les contenus</p>
+      <div id="hot"></div>
+    </div>
+  </section>
+
+  <section class="grid cols">
+    <div class="card">
+      <h2>Termes émergents</h2>
+      <p class="sub-h" id="emerging-sub">Termes au moins deux fois plus fréquents cette semaine que sur les 4 précédentes</p>
+      <div id="emerging"></div>
+    </div>
+    <div class="card">
+      <h2>Types de contenu</h2>
+      <p class="sub-h">Répartition de la sélection · clic = filtrer</p>
+      <div id="types"></div>
+    </div>
+  </section>
+
+  <section id="bench-sec">
+    <div class="card">
+      <h2>Benchmark des écoles</h2>
+      <p class="sub-h">Contenus citant chaque école, par catégorie, sur la période</p>
+      <div class="scroll" id="bench"></div>
+      <div id="bench-last"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2>Qui en parle ?</h2>
+      <p class="sub-h">Sources les plus actives sur la sélection</p>
+      <div id="sources"></div>
+    </div>
+  </section>
+
+  <section id="articles">
+    <div class="card">
+      <div class="list-head">
+        <div><h2 id="list-title">Contenus</h2><p class="sub-h" id="list-count" style="margin:0"></p></div>
+        <div class="seg" id="sort" role="group" aria-label="Tri"></div>
+      </div>
+      <div id="list"></div>
+      <button class="more" id="more" type="button" hidden>Voir plus</button>
+    </div>
+  </section>
+
+  <footer>
+    <p>Titres traduits et résumés générés automatiquement par IA à partir des titres et extraits publics : vérifiez la source avant de citer.</p>
+    <p id="foot-sem"></p>
+  </footer>
+</main>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script id="data" type="application/json">/*__DATA__*/null</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("data").textContent);
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl = u => /^https?:\/\//i.test(u) ? u : "#";
+const fmt = n => new Intl.NumberFormat("fr-FR").format(Math.round(n));
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const plural = (n, w, p) => `${fmt(n)} ${n > 1 ? (p || w + "s") : w}`;
+const frDate = iso => new Date(iso).toLocaleDateString("fr-FR", {day: "numeric", month: "short"});
+const DAY = 864e5, NOW = Date.parse(D.generated_at);
+const KEY = "radar-pedago:v1";
+const TRANSFORMERS = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
+const SEM_THRESHOLD = 0.42;
+
+const DOM = {}; D.domains.forEach((d, i) => DOM[d.id] = {...d, color: `var(--dom-${i + 1})`});
+const TYPE_EMOJI = Object.fromEntries(D.content_types.map(t => [t.name, t.emoji]));
+const SCHOOL = Object.fromEntries(D.schools.map(s => [s.id, s]));
+const stop = new Set(D.stopwords), alias = new Set(D.alias_words);
+const GLOSS = D.glossary.map(e => e.map(norm));
+const sw = color => `<span class="sw" style="background:${color}"></span>`;
+
+D.articles.forEach((a, i) => {
+  a._i = i; a._t = Date.parse(a.p);
+  a._n = norm([a.t, a.o, a.sm, a.s, a.c].join(" "));
+  a._nt = norm(a.t + " " + a.o);
+});
+const BY_URL = Object.fromEntries(D.articles.map(a => [a.u, a]));
+const srcWords = new Set(D.articles.flatMap(a => norm(a.s).match(/[a-z0-9]+/g) || []));
+
+// ---------- state: URL hash > localStorage > defaults ----------
+const state = {weeks: 12, domains: [], cat: "", type: "", q: "", topic: "", school: "", source: "", sort: "date", shown: 25};
+const PERIODS = [4, 12, 26];
+function readState() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { saved = {}; }
+  const h = new URLSearchParams(location.hash.slice(1));
+  const pick = (k, def) => h.has(k) ? h.get(k) : (saved[k] != null ? saved[k] : def);
+  state.weeks = PERIODS.includes(+pick("w", 12)) ? +pick("w", 12) : 12;
+  const ds = pick("d", "");
+  state.domains = (Array.isArray(ds) ? ds : String(ds).split(",")).filter(d => DOM[d]);
+  state.cat = pick("c", "") || ""; state.type = pick("y", "") || ""; state.q = pick("q", "") || "";
+  if (state.domains.length !== 1 || !DOM[state.domains[0]].categories.includes(state.cat)) state.cat = "";
+  if (!TYPE_EMOJI[state.type]) state.type = "";
+}
+function saveState() {
+  const s = {w: state.weeks, d: state.domains.join(","), c: state.cat, y: state.type, q: state.q};
+  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* storage blocked: the URL still carries the view */ }
+  const h = new URLSearchParams(); Object.entries(s).forEach(([k, v]) => { if (v !== "" && !(k === "w" && v === 12)) h.set(k, v); });
+  const hash = h.toString();
+  try { history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search); } catch (e) {}
+}
+
+// ---------- search: keywords + glossary, then semantic re-ranking ----------
+const sem = {status: D.embeddings ? "idle" : "off", extractor: null, vecs: null, cache: new Map(), error: ""};
+let scores = null;   // Map article index -> {kw, sem, score} for the current query
+let searchSeq = 0;
+
+function wordRe(term) { return new RegExp("(^|[^a-z0-9])" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "($|[^a-z0-9])"); }
+function expandQuery(q) {
+  const nq = norm(q).replace(/\s+/g, " ").trim();
+  if (!nq) return [];
+  const terms = new Map([[nq, 3]]);
+  nq.split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !stop.has(w)).forEach(w => { if (!terms.has(w)) terms.set(w, 1); });
+  GLOSS.forEach(entry => {
+    if (entry.some(t => t === nq || wordRe(t).test(nq))) entry.forEach(t => { if ((terms.get(t) || 0) < 2) terms.set(t, 2); });
+  });
+  return [...terms].map(([t, w]) => ({re: wordRe(t), w, t}));
+}
+function keywordScores(q) {
+  const terms = expandQuery(q), out = new Map();
+  if (!terms.length) return out;
+  D.articles.forEach(a => {
+    let s = 0; terms.forEach(t => { if (t.re.test(a._n)) s += t.w * (t.re.test(a._nt) ? 1.5 : 1); });
+    if (s > 0) out.set(a._i, s);
+  });
+  return out;
+}
+async function queryVector(q) {
+  if (sem.cache.has(q)) return sem.cache.get(q);
+  const out = await sem.extractor(q, {pooling: "mean", normalize: true});
+  const v = Float32Array.from(out.data); sem.cache.set(q, v); return v;
+}
+async function loadModel() {
+  if (sem.status !== "idle") return;
+  sem.status = "loading"; renderSearchStatus();
+  try {
+    const [lib, buf] = await Promise.all([
+      import(TRANSFORMERS),
+      fetch(D.embeddings.file).then(r => { if (!r.ok) throw new Error("vecteurs introuvables (HTTP " + r.status + ")"); return r.arrayBuffer(); }),
+    ]);
+    const vecs = new Int8Array(buf);
+    if (vecs.length !== D.embeddings.dim * D.articles.length) throw new Error("vecteurs non alignés avec la page");
+    sem.vecs = vecs;
+    sem.extractor = await lib.pipeline("feature-extraction", D.embeddings.model, {dtype: "q8"});
+    sem.status = "ready";
+  } catch (e) {
+    sem.status = "error"; sem.error = String(e && e.message || e).slice(0, 140);
+    console.warn("Recherche sémantique indisponible :", e);
+  }
+  renderSearchStatus();
+  if (state.q) runSearch();
+}
+async function runSearch() {
+  const seq = ++searchSeq, q = state.q.trim();
+  if (!q) { scores = null; renderAll(); return; }
+  const kw = keywordScores(q), out = new Map();
+  kw.forEach((s, i) => out.set(i, {kw: s, sem: null, score: Math.min(s, 6) / 6}));
+  if (sem.status === "ready") {
+    try {
+      const v = await queryVector(q), dim = D.embeddings.dim, n = D.articles.length;
+      if (seq !== searchSeq) return;
+      for (let i = 0; i < n; i++) {
+        let dot = 0; const off = i * dim;
+        for (let j = 0; j < dim; j++) dot += v[j] * sem.vecs[off + j];
+        const s = dot / 127, k = kw.get(i) || 0;
+        if (s >= SEM_THRESHOLD || k > 0) out.set(i, {kw: k, sem: s, score: s + 0.1 * Math.min(k, 6)});
+      }
+    } catch (e) { sem.status = "error"; sem.error = String(e.message || e).slice(0, 140); renderSearchStatus(); }
+  }
+  if (seq !== searchSeq) return;
+  scores = out; state.shown = 25; renderAll();
+}
+function renderSearchStatus() {
+  const el = $("search-status");
+  if (sem.status === "off") el.innerHTML = state.q ? "Recherche par mots-clés et sigles (recherche sémantique non publiée)" : "";
+  else if (sem.status === "loading") el.innerHTML = "Recherche sémantique : chargement du modèle <b>(≈ 120 Mo, une seule fois)</b>… les résultats par mots-clés s'affichent déjà.";
+  else if (sem.status === "error") el.innerHTML = "Recherche sémantique indisponible (" + esc(sem.error) + ") : recherche par mots-clés et sigles.";
+  else if (sem.status === "ready") el.innerHTML = state.q ? "Recherche sémantique active : les contenus proches du sens de la requête sont inclus." : "";
+  else el.innerHTML = "";
+  $("foot-sem").textContent = D.embeddings ? "Recherche sémantique : modèle " + D.embeddings.model + ", exécuté dans votre navigateur (aucune requête envoyée à un serveur)." : "";
+}
+
+// ---------- selection ----------
+const weekStart = t => { const d = new Date(t); const wd = (d.getUTCDay() + 6) % 7; return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - wd); };
+function periodStart() { return weekStart(NOW) - (state.weeks - 1) * 7 * DAY; }
+function selection(opts = {}) {
+  const start = periodStart(), hot = state.topic ? new Set((D.hot.find(h => h.label === state.topic) || {urls: []}).urls) : null;
+  return D.articles.filter(a => a._t >= start
+    && (opts.ignoreDomains || !state.domains.length || a.ds.some(d => state.domains.includes(d)))
+    && (opts.ignoreDomains || !state.cat || (a.d === state.domains[0] && a.c === state.cat))
+    && (opts.ignoreType || !state.type || a.y === state.type)
+    && (!hot || hot.has(a.u))
+    && (!state.school || a.e.includes(state.school))
+    && (!state.source || a.s === state.source)
+    && (!scores || scores.has(a._i)));
+}
+
+// ---------- tooltip ----------
+const tip = $("tip");
+function showTip(html, ev) {
+  tip.innerHTML = html; tip.classList.add("on");
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - pad;
+  tip.style.left = Math.max(8, x) + "px"; tip.style.top = Math.max(8, y) + "px";
+}
+const hideTip = () => tip.classList.remove("on");
+
+// ---------- controls ----------
+function renderControls() {
+  $("period").innerHTML = PERIODS.map(w => `<button type="button" data-w="${w}" aria-pressed="${w === state.weeks}">${w} semaines</button>`).join("");
+  $("period").querySelectorAll("button").forEach(b => b.onclick = () => { state.weeks = +b.dataset.w; changed(); });
+  const base = selection({ignoreDomains: true}), counts = {};
+  base.forEach(a => a.ds.forEach(d => counts[d] = (counts[d] || 0) + 1));
+  $("tags").innerHTML = D.domains.map(d => `<button type="button" class="tag" data-d="${d.id}" aria-pressed="${state.domains.includes(d.id)}">${sw(DOM[d.id].color)}${esc(d.label)} <span class="n">${fmt(counts[d.id] || 0)}</span></button>`).join("")
+    + (state.domains.length ? `<button type="button" class="linkbtn" id="all-tags">Tous les sujets</button>` : "");
+  $("tags").querySelectorAll(".tag").forEach(b => b.onclick = () => {
+    const d = b.dataset.d, i = state.domains.indexOf(d);
+    if (i >= 0) state.domains.splice(i, 1); else state.domains.push(d);
+    state.cat = ""; changed();
+  });
+  if ($("all-tags")) $("all-tags").onclick = () => { state.domains = []; state.cat = ""; changed(); };
+  const one = state.domains.length === 1 ? DOM[state.domains[0]] : null;
+  $("subtags").hidden = !one;
+  if (one) {
+    const cc = {}; base.filter(a => a.d === one.id).forEach(a => cc[a.c] = (cc[a.c] || 0) + 1);
+    $("subtags").innerHTML = one.categories.map(c => `<button type="button" class="tag sub" data-c="${esc(c)}" aria-pressed="${c === state.cat}">${esc(c)} <span class="n">${fmt(cc[c] || 0)}</span></button>`).join("");
+    $("subtags").querySelectorAll(".tag").forEach(b => b.onclick = () => { state.cat = state.cat === b.dataset.c ? "" : b.dataset.c; changed(); });
+  }
+  $("type").innerHTML = `<option value="">Tous les types de contenu</option>` + D.content_types.map(t => `<option value="${esc(t.name)}"${t.name === state.type ? " selected" : ""}>${t.emoji} ${esc(t.name)}</option>`).join("");
+  $("q").value = state.q; $("q-clear").hidden = !state.q;
+  const chips = [];
+  if (state.q) chips.push(["q", `Recherche : « ${state.q} »`]);
+  if (state.topic) chips.push(["topic", `Sujet chaud : ${state.topic}`]);
+  if (state.school) chips.push(["school", `École : ${(SCHOOL[state.school] || {}).label || state.school}`]);
+  if (state.source) chips.push(["source", `Source : ${state.source}`]);
+  if (state.type) chips.push(["type", `Type : ${state.type}`]);
+  $("active").innerHTML = chips.map(([k, l]) => `<span class="chip">${esc(l)}<button type="button" data-k="${k}" aria-label="Retirer le filtre ${esc(l)}">✕</button></span>`).join("")
+    + (chips.length + state.domains.length > 1 ? `<button type="button" class="linkbtn" id="reset">Tout réinitialiser</button>` : "");
+  $("active").querySelectorAll("button[data-k]").forEach(b => b.onclick = () => { state[b.dataset.k] = ""; if (b.dataset.k === "q") { scores = null; searchSeq++; } changed(); });
+  if ($("reset")) $("reset").onclick = () => { Object.assign(state, {domains: [], cat: "", type: "", q: "", topic: "", school: "", source: ""}); scores = null; searchSeq++; changed(); };
+  renderSearchStatus();
+}
+
+function renderMeta() {
+  const g = new Date(D.generated_at);
+  $("meta").innerHTML = `Mis à jour le ${g.toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long"})}<br>${plural(D.articles.length, "contenu")} sur 26 semaines · mise à jour chaque lundi`;
+}
+
+// ---------- KPIs ----------
+function renderKPIs(list) {
+  const week = list.filter(a => a._t >= NOW - 7 * DAY);
+  const sources = new Set(list.map(a => a.s)).size;
+  const hot = D.hot.filter(h => !state.domains.length || state.domains.includes(h.domain)).length;
+  const cell = (v, l, s) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${l}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
+  $("kpis").innerHTML = cell(fmt(list.length), "contenus sur la période", `${state.weeks} semaines`) +
+    cell(fmt(week.length), "nouveaux cette semaine", "7 derniers jours") +
+    cell(fmt(sources), "sources actives", "dans la sélection") +
+    cell(fmt(hot), "sujets chauds", "repris par plusieurs sources");
+}
+
+// ---------- weekly trend (stacked bars by primary domain) ----------
+function renderTrend(list) {
+  const start = periodStart(), weeks = Array.from({length: state.weeks}, (_, i) => start + i * 7 * DAY);
+  const ids = D.domains.map(d => d.id).filter(id => list.some(a => a.d === id));
+  const by = weeks.map(() => Object.fromEntries(ids.map(id => [id, 0])));
+  list.forEach(a => { const w = Math.floor((weekStart(a._t) - start) / (7 * DAY)); if (w >= 0 && w < weeks.length && a.d in by[w]) by[w][a.d]++; });
+  const totals = by.map(o => Object.values(o).reduce((s, v) => s + v, 0)), max = Math.max(...totals, 1);
+  const W = Math.max(320, $("trend").clientWidth || 760), H = W < 500 ? 200 : 240, L = 34, R = 8, T = 10, B = 24, iw = W - L - R, ih = H - T - B;
+  const nice = (() => { const raw = max / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), m = [1, 2, 5, 10].find(m => m * p >= raw); return Math.max(1, m * p); })();
+  const top = Math.max(nice * Math.ceil(max / nice), 1);
+  const y = v => T + ih - v / top * ih, bw = iw / weeks.length, gap = Math.min(10, bw * .28);
+  let g = "";
+  for (let v = 0; v <= top; v += nice) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--axis)">${fmt(v)}</text>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--base)" stroke-width="1"/>`;
+  const step = Math.max(1, Math.ceil(weeks.length * 64 / iw));
+  weeks.forEach((w, i) => {
+    const x = L + i * bw + gap / 2, width = bw - gap; let acc = 0;
+    const segs = ids.filter(id => by[i][id]);
+    segs.forEach((id, k) => {
+      const v = by[i][id], y0 = y(acc), y1 = y(acc + v); acc += v;
+      const isTop = k === segs.length - 1, h = Math.max(y0 - y1 - (isTop ? 0 : 2), 1);
+      g += isTop
+        ? `<path d="M${x},${y0} V${y1 + Math.min(4, h)} Q${x},${y1} ${x + Math.min(4, width / 2)},${y1} H${x + width - Math.min(4, width / 2)} Q${x + width},${y1} ${x + width},${y1 + Math.min(4, h)} V${y0} Z" fill="${DOM[id].color}"/>`
+        : `<rect x="${x}" y="${y0 - h}" width="${width}" height="${h}" fill="${DOM[id].color}"/>`;
+    });
+    if (i % step === 0) g += `<text x="${x + width / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--axis)">${frDate(w)}</text>`;
+    g += `<rect class="hit" data-i="${i}" x="${L + i * bw}" y="${T}" width="${bw}" height="${ih}" fill="transparent"/>`;
+  });
+  $("trend").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Contenus par semaine et par sujet">${g}</svg>`;
+  $("trend").querySelectorAll(".hit").forEach(r => {
+    const i = +r.dataset.i;
+    const html = () => `<div class="h">Semaine du ${frDate(weeks[i])}</div>` + ids.slice().reverse().filter(id => by[i][id]).map(id => `<div class="r"><span>${sw(DOM[id].color)}${esc(DOM[id].label)}</span><b>${by[i][id]}</b></div>`).join("") + `<div class="r" style="border-top:1px solid var(--grid);margin-top:4px;padding-top:4px"><span>Total</span><b>${totals[i]}</b></div>`;
+    r.onmousemove = e => { r.setAttribute("fill", "var(--hover)"); showTip(html(), e); };
+    r.onmouseleave = () => { r.setAttribute("fill", "transparent"); hideTip(); };
+  });
+  $("trend-legend").innerHTML = ids.map(id => `<span>${sw(DOM[id].color)}${esc(DOM[id].label)}</span>`).join("");
+  $("trend-sub").textContent = `Nombre de contenus par semaine, par sujet principal · ${state.weeks} dernières semaines`;
+}
+
+// ---------- word cloud (mirrors text.tokens() in Python) ----------
+function tokens(t) {
+  return (String(t).toLowerCase().replace(/[’']/g, " ").match(/[a-zà-ÿ0-9][a-zà-ÿ0-9\-]*/g) || [])
+    .map(w => w.replace(/^-+|-+$/g, ""))
+    .filter(w => w.length >= 3 && !stop.has(w) && !/^\d+$/.test(w) && !(w.includes("-") && w.split("-").some(p => stop.has(p))));
+}
+function renderCloud(list) {
+  const counts = {};
+  list.forEach(a => new Set(tokens(a.t).filter(w => w.length >= 4 && !norm(w).split("-").some(p => alias.has(p) || srcWords.has(p)))).forEach(w => counts[w] = (counts[w] || 0) + 1));
+  const top = Object.entries(counts).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 60);
+  if (top.length < 3) { $("cloud").innerHTML = `<div class="empty">Pas assez de contenus dans la sélection pour un nuage de mots.</div>`; return; }
+  const max = top[0][1], min = top[top.length - 1][1];
+  $("cloud").innerHTML = top.slice().sort((a, b) => a[0].localeCompare(b[0], "fr")).map(([w, n]) => {
+    const r = max === min ? .5 : (Math.sqrt(n) - Math.sqrt(min)) / (Math.sqrt(max) - Math.sqrt(min));
+    return `<button type="button" data-w="${esc(w)}" style="font-size:${(13 + r * (innerWidth < 600 ? 17 : 26)).toFixed(0)}px;font-weight:${r > .55 ? 700 : r > .25 ? 600 : 400};color:${r > .3 ? "var(--ink)" : "var(--ink2)"}" title="${plural(n, "contenu")}">${esc(w)}</button>`;
+  }).join("");
+  $("cloud").querySelectorAll("button").forEach(b => b.onclick = () => setQuery(b.dataset.w));
+}
+
+// ---------- hot topics ----------
+function renderHot() {
+  const rows = D.hot.filter(h => !state.domains.length || state.domains.includes(h.domain)).slice(0, 8);
+  $("hot").innerHTML = rows.map(h => {
+    const arts = h.urls.map(u => BY_URL[u]).filter(Boolean).slice(0, 2);
+    return `<div class="topic"><button type="button" class="lbl" data-l="${esc(h.label)}" aria-pressed="${state.topic === h.label}">${sw(DOM[h.domain].color)}${esc(h.label)}</button> <span class="m">${plural(h.count, "contenu")} · ${plural(h.sources, "source")}</span>` +
+      `<ul>${arts.map(a => `<li><a href="${esc(safeUrl(a.u))}" target="_blank" rel="noopener noreferrer">${esc(a.t)}</a> <span class="m">— ${esc(a.s)}</span></li>`).join("")}</ul></div>`;
+  }).join("") || `<div class="empty">Aucun sujet repris par plusieurs sources cette semaine${state.domains.length ? " dans ces sujets" : ""}.</div>`;
+  $("hot").querySelectorAll(".lbl").forEach(b => b.onclick = () => { state.topic = state.topic === b.dataset.l ? "" : b.dataset.l; changed(); scrollToList(); });
+}
+
+// ---------- emerging terms ----------
+function spark(vals) {
+  const w = 96, h = 26, max = Math.max(...vals, 1), x = i => 3 + i / (vals.length - 1) * (w - 6), y = v => h - 3 - v / max * (h - 7);
+  const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="var(--dom-1)" stroke-width="2" stroke-linejoin="round" points="${pts}"/><circle cx="${x(vals.length - 1)}" cy="${y(vals[vals.length - 1])}" r="3.5" fill="var(--dom-1)" stroke="var(--surface)" stroke-width="2"/></svg>`;
+}
+function renderEmerging() {
+  const E = D.emerging;
+  if (!E.ready) {
+    $("emerging").innerHTML = `<div class="empty">Il faut 4 semaines d'historique pour comparer les semaines entre elles.${E.ready_on ? ` Cette section s'activera à partir du ${new Date(E.ready_on).toLocaleDateString("fr-FR", {day: "numeric", month: "long"})}.` : ""}</div>`;
+    return;
+  }
+  $("emerging").innerHTML = E.terms.map(t => `<div class="term"><button type="button" data-w="${esc(t.term)}">${esc(t.term)}</button>${spark(t.series)}<span class="x">${t.count} cette sem. · ${t.baseline} en moy.</span></div>`).join("")
+    || `<div class="empty">Aucun terme en forte hausse cette semaine.</div>`;
+  $("emerging").querySelectorAll("button").forEach(b => b.onclick = () => setQuery(b.dataset.w));
+}
+
+// ---------- content types ----------
+function renderTypes() {
+  const list = selection({ignoreType: true}), c = {};
+  list.forEach(a => c[a.y] = (c[a.y] || 0) + 1);
+  const rows = D.content_types.map(t => [t, c[t.name] || 0]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(...rows.map(r => r[1]), 1), total = list.length || 1;
+  $("types").innerHTML = rows.length ? `<table><tbody>` + rows.map(([t, n]) => `<tr class="click${t.name === state.type ? " on" : ""}" data-t="${esc(t.name)}" tabindex="0"><td>${t.emoji} ${esc(t.name)}</td><td style="width:42%"><div class="hbar" style="width:${(n / max * 100).toFixed(1)}%" title="${n} contenus"></div></td><td class="n">${fmt(n)}</td><td class="n" style="color:var(--muted)">${Math.round(n / total * 100)} %</td></tr>`).join("") + `</tbody></table>`
+    : `<div class="empty">Aucun contenu dans la sélection.</div>`;
+  $("types").querySelectorAll("tr.click").forEach(r => { const go = () => { state.type = state.type === r.dataset.t ? "" : r.dataset.t; changed(); }; r.onclick = go; r.onkeydown = e => { if (e.key === "Enter") go(); }; });
+}
+
+// ---------- benchmark ----------
+function renderBench(list) {
+  const show = D.schools.length && (!state.domains.length || state.domains.includes("benchmark"));
+  $("bench-sec").hidden = !show;
+  if (!show) return;
+  const cats = DOM.benchmark.categories, start = periodStart();
+  const all = D.articles.filter(a => a._t >= start && a.e.length && (!scores || scores.has(a._i)));
+  const cell = (n, max) => { const lvl = n ? Math.min(6, 1 + Math.floor(n / Math.max(max, 1) * 5.99)) : 0; return lvl ? `background:var(--seq-${lvl});color:${lvl >= 4 ? "#fff" : "var(--ink)"}` : "color:var(--muted)"; };
+  const matrix = D.schools.map(s => { const arts = all.filter(a => a.e.includes(s.id)); return {s, arts, by: Object.fromEntries(cats.map(c => [c, arts.filter(a => a.d === "benchmark" && a.c === c).length])), other: arts.filter(a => a.d !== "benchmark").length}; });
+  const max = Math.max(1, ...matrix.flatMap(m => [...Object.values(m.by), m.other]));
+  $("bench").innerHTML = `<table class="heat"><thead><tr><th>École</th>${cats.map(c => `<th class="n" style="text-align:center">${esc(c)}</th>`).join("")}<th class="n" style="text-align:center">Citée ailleurs</th><th class="n">Total</th></tr></thead><tbody>` +
+    matrix.map(m => `<tr class="click${state.school === m.s.id ? " on" : ""}" data-s="${esc(m.s.id)}" tabindex="0"><td>${esc(m.s.label)}<div class="hint">${esc(m.s.group)}</div></td>${cats.map(c => `<td class="cell" style="${cell(m.by[c], max)}" title="${esc(m.s.label)} · ${esc(c)} : ${m.by[c]}">${m.by[c] || "·"}</td>`).join("")}<td class="cell" style="${cell(m.other, max)}" title="Contenus d'autres sujets citant l'école : ${m.other}">${m.other || "·"}</td><td class="n"><b>${m.arts.length}</b></td></tr>`).join("") + `</tbody></table>`;
+  $("bench").querySelectorAll("tr.click").forEach(r => { const go = () => { state.school = state.school === r.dataset.s ? "" : r.dataset.s; changed(); scrollToList(); }; r.onclick = go; r.onkeydown = e => { if (e.key === "Enter") go(); }; });
+  const last = matrix.flatMap(m => m.arts.slice(0, 3).map(a => [m.s, a]));
+  $("bench-last").innerHTML = last.length ? `<div class="hint" style="margin:14px 0 4px"><b>Dernières actualités</b></div>` + last.map(([s, a]) => `<div style="font-size:13.5px;margin:4px 0"><span class="hint">${frDate(a.p)} · ${esc(s.label)}</span><br><a href="${esc(safeUrl(a.u))}" target="_blank" rel="noopener noreferrer">${esc(a.t)}</a></div>`).join("")
+    : `<div class="empty">Aucune actualité des écoles suivies sur la période. Ajoutez des écoles dans entities.json.</div>`;
+}
+
+// ---------- sources ----------
+function renderSources(list) {
+  const by = {}; list.forEach(a => by[a.s] = (by[a.s] || 0) + 1);
+  const rows = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 12), max = rows.length ? rows[0][1] : 1, total = list.length || 1;
+  $("sources").innerHTML = rows.length ? `<table><thead><tr><th>Source</th><th style="width:40%"><span class="sr">Volume</span></th><th class="n">Contenus</th><th class="n">Part</th></tr></thead><tbody>` +
+    rows.map(([s, n]) => `<tr class="click${state.source === s ? " on" : ""}" data-s="${esc(s)}" tabindex="0"><td>${esc(s)}</td><td><div class="hbar" style="width:${(n / max * 100).toFixed(1)}%"></div></td><td class="n">${fmt(n)}</td><td class="n" style="color:var(--muted)">${Math.round(n / total * 100)} %</td></tr>`).join("") + `</tbody></table>`
+    : `<div class="empty">Aucune source pour cette sélection.</div>`;
+  $("sources").querySelectorAll("tr.click").forEach(r => { const go = () => { state.source = state.source === r.dataset.s ? "" : r.dataset.s; changed(); scrollToList(); }; r.onclick = go; r.onkeydown = e => { if (e.key === "Enter") go(); }; });
+}
+
+// ---------- articles ----------
+function renderList(list) {
+  const relevance = scores && state.sort === "pertinence";
+  const sorted = list.slice().sort(relevance ? (a, b) => scores.get(b._i).score - scores.get(a._i).score : (a, b) => b._t - a._t);
+  $("sort").innerHTML = [["date", "Plus récents"], ["pertinence", "Plus pertinents"]].map(([k, l]) => `<button type="button" data-s="${k}" aria-pressed="${state.sort === k}"${k === "pertinence" && !scores ? " disabled title=\"Disponible pendant une recherche\"" : ""}>${l}</button>`).join("");
+  $("sort").querySelectorAll("button").forEach(b => b.onclick = () => { if (!b.disabled) { state.sort = b.dataset.s; state.shown = 25; renderList(selection()); } });
+  $("list-title").textContent = state.q ? `Résultats pour « ${state.q} »` : "Contenus";
+  $("list-count").textContent = `${plural(sorted.length, "contenu")} · ${relevance ? "triés par pertinence" : "du plus récent au plus ancien"}`;
+  $("list").innerHTML = sorted.slice(0, state.shown).map(a => {
+    const sc = scores && scores.get(a._i), dom = DOM[a.d];
+    const extra = a.ds.filter(d => d !== a.d && DOM[d]).map(d => `<span class="dchip" style="font-weight:400">${sw(DOM[d].color)}${esc(DOM[d].label)}</span>`).join("");
+    return `<article class="art"><div class="top"><span class="dchip">${sw(dom.color)}${esc(dom.label)}</span>${extra}${a.c ? `<span>${esc(a.c)}</span>` : ""}${a.y ? `<span>${TYPE_EMOJI[a.y] || ""} ${esc(a.y)}</span>` : ""}${sc && sc.sem != null ? `<span class="score" title="Similarité sémantique">proximité ${Math.round(sc.sem * 100)} %</span>` : ""}</div>` +
+      `<h3><a href="${esc(safeUrl(a.u))}" target="_blank" rel="noopener noreferrer">${esc(a.t)}</a></h3>` +
+      (a.o ? `<p class="orig" lang="en">Titre original : ${esc(a.o)}</p>` : "") +
+      `<div class="src">${esc(a.s)} · ${a.est ? "repéré le " : ""}${new Date(a.p).toLocaleDateString("fr-FR", {day: "numeric", month: "long", year: "numeric"})}${a.e.map(id => SCHOOL[id] ? ` · ${esc(SCHOOL[id].label)}` : "").join("")}</div>` +
+      (a.sm ? `<p class="sm">${esc(a.sm)}</p>` : "") + `</article>`;
+  }).join("") || `<div class="empty">Aucun contenu pour ces filtres.${state.q ? " Essayez une formulation plus générale ou retirez un sujet." : ""}</div>`;
+  $("more").hidden = sorted.length <= state.shown;
+  $("more").textContent = `Voir plus (${fmt(sorted.length - state.shown)} restants)`;
+}
+
+// ---------- wiring ----------
+function renderAll() {
+  const list = selection();
+  renderControls(); renderMeta(); renderKPIs(list); renderTrend(list); renderCloud(list); renderHot(); renderEmerging();
+  renderTypes(); renderBench(list); renderSources(list); renderList(list);
+}
+function changed() { state.shown = 25; saveState(); renderAll(); }
+function scrollToList() { $("articles").scrollIntoView({behavior: "smooth", block: "start"}); }
+function setQuery(q) {
+  state.q = q; state.sort = "pertinence"; saveState(); $("q").value = q;
+  if (sem.status === "idle") loadModel();
+  runSearch().then(scrollToList);
+}
+let debounce;
+$("q").addEventListener("focus", () => { if (sem.status === "idle") loadModel(); });
+$("q").addEventListener("input", e => {
+  clearTimeout(debounce); $("q-clear").hidden = !e.target.value;
+  debounce = setTimeout(() => { state.q = e.target.value.trim(); state.sort = state.q ? "pertinence" : "date"; saveState(); runSearch(); }, 300);
+});
+$("q").addEventListener("keydown", e => { if (e.key === "Escape") { e.target.value = ""; state.q = ""; scores = null; searchSeq++; changed(); } });
+$("q-clear").onclick = () => { state.q = ""; scores = null; searchSeq++; changed(); $("q").focus(); };
+$("type").onchange = e => { state.type = e.target.value; changed(); };
+$("more").onclick = () => { state.shown += 25; renderList(selection()); };
+window.addEventListener("hashchange", () => { readState(); runSearch(); });
+let resizeT; window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => renderTrend(selection()), 150); });
+
+$("demo").hidden = !D.demo;
+readState();
+if (state.q) { state.sort = "pertinence"; runSearch(); if (sem.status === "idle") loadModel(); } else renderAll();
+</script>
+</body>
+</html>

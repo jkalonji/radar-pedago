@@ -1,0 +1,10 @@
+aiohttp>=3.9
+feedparser>=6.0
+requests>=2.31
+openai>=1.40
+supabase>=2.0
+python-dotenv>=1.0
+numpy>=1.26
+onnxruntime>=1.17
+tokenizers>=0.19
+huggingface_hub>=0.23

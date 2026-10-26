@@ -1,0 +1,29 @@
+{
+  "_doc": "Écoles suivies pour le benchmark. Chaque école a un label, des alias (détection insensible aux accents et à la casse, mots entiers), un groupe et, si 'gnews' vaut true, une recherche Google News automatique sur son nom. Ajouter une école = ajouter un bloc ici, rien d'autre. 'relevance_keywords' sert au filtre 'superieur' des revues généralistes quand le LLM est indisponible.",
+  "schools": [
+    {
+      "id": "villebon_charpak",
+      "label": "Institut Villebon – Georges Charpak",
+      "aliases": ["Villebon-Charpak", "Villebon Charpak", "Institut Villebon", "Villebon - Georges Charpak", "Villebon – Georges Charpak"],
+      "group": "Hors Ionis",
+      "gnews": true,
+      "gnews_query": "\"Villebon-Charpak\" OR \"Institut Villebon\""
+    }
+  ],
+  "relevance_keywords": {
+    "superieur": {
+      "strong": [
+        "enseignement supérieur", "université", "universitaire", "universités", "étudiant", "étudiants", "étudiantes",
+        "école d'ingénieurs", "ingénieur", "ingénieurs", "ingénierie", "licence", "master", "doctorat", "doctorants",
+        "pédagogie universitaire", "formation des adultes", "formation continue", "formation professionnelle",
+        "higher education", "university", "undergraduate", "graduate", "engineering education", "engineering students",
+        "computing education", "design education", "intelligence artificielle", "IA générative", "ChatGPT",
+        "artificial intelligence", "generative AI", "approche par compétences", "conception", "design"
+      ],
+      "weak": [
+        "compétences", "évaluation", "numérique", "projet", "apprentissage", "formation", "enseignants", "curriculum",
+        "competencies", "assessment", "digital", "project-based", "learning", "teaching", "adult"
+      ]
+    }
+  }
+}

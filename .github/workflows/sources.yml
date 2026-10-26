@@ -1,0 +1,37 @@
+name: Radar Pédago - Check sources
+
+# Tests every source (no database write) and publishes a table in the job summary: which sources answer,
+# through which method (flux, page, secours Google News...), and a sample title. Monthly + on demand.
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Ne tester que les sources dont le nom contient ce texte (vide = toutes)"
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: Check sources
+        env:
+          CROSSREF_MAILTO: ${{ vars.CROSSREF_MAILTO }}
+          ONLY: ${{ github.event.inputs.only }}
+        run: python check_sources.py --only "$ONLY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sources-check
+          path: output/sources_check.md
