@@ -135,7 +135,14 @@ def test_cloud_click_and_hot_topic_filter(site, browser):
     page.click("#q-clear")
     page.wait_for_timeout(800)   # let the smooth scroll to the list finish before clicking elsewhere
     if page.locator("#hot .lbl").count():
+        # unfolding a hot topic lists every source with its own contents, replacing the 2-item preview
+        topic = page.locator("#hot .topic").first
+        n_sources = int(topic.locator("summary").inner_text().split("·")[1].split()[0])
+        topic.locator("summary").click()
+        assert topic.locator(".srcs h4").count() == n_sources
+        assert topic.locator(".preview").is_hidden()
         page.locator("#hot .lbl").first.click()
+        assert page.locator("#hot details").first.get_attribute("open") is not None   # stays open after re-render
         assert "Sujet chaud" in page.inner_text("#active")
         assert count(page) >= 2
     assert errors == []

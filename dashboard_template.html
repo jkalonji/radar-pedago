@@ -131,6 +131,18 @@ h2{font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:-.005em}
 .topic .m{font-size:12.5px;color:var(--muted)}
 .topic ul{margin:4px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink2)}
 .topic li a{text-decoration:none}.topic li a:hover{text-decoration:underline}
+.topic details{margin-top:2px}
+.topic summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;color:var(--ink2);list-style:none;padding:2px 6px;margin-left:-6px;border-radius:6px}
+.topic summary::-webkit-details-marker{display:none}
+.topic summary::before{content:"▸";font-size:11px;transition:transform .12s}
+.topic details[open] summary::before{transform:rotate(90deg)}
+.topic summary:hover{background:var(--hover);color:var(--ink)}
+.topic:has(details[open]) .preview{display:none}
+.topic .srcs{margin:6px 0 2px;padding-left:12px;border-left:2px solid var(--grid)}
+.topic .srcs h4{margin:8px 0 2px;font-size:12.5px;font-weight:600;color:var(--ink)}
+.topic .srcs h4:first-child{margin-top:2px}
+.topic .srcs ul{margin:0;padding-left:16px}
+.topic .srcs .m{white-space:nowrap;font-weight:400}
 .term{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--grid)}
 .term:last-child{border-bottom:0}
 .term button{border:0;background:none;padding:0;cursor:pointer;font-weight:600;text-align:left;flex:1;min-width:0}
@@ -569,14 +581,25 @@ document.querySelectorAll(".cloud-reset").forEach(b => b.onclick = () => {
 });
 
 // ---------- hot topics ----------
+const hotOpen = new Set();   // topics unfolded by the reader, kept open across re-renders
+const link = a => `<a href="${esc(safeUrl(a.u))}" target="_blank" rel="noopener noreferrer">${esc(a.t)}</a>`;
+function hotSources(arts) {
+  const by = new Map();
+  arts.slice().sort((a, b) => b._t - a._t).forEach(a => { if (!by.has(a.s)) by.set(a.s, []); by.get(a.s).push(a); });
+  return [...by].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "fr")).map(([s, list]) =>
+    `<h4>${esc(s)} <span class="m">· ${plural(list.length, "contenu")}</span></h4><ul>${list.map(a => `<li>${link(a)} <span class="m">— ${frDate(a.p)}</span></li>`).join("")}</ul>`).join("");
+}
 function renderHot() {
   const rows = D.hot.filter(h => !state.domains.length || state.domains.includes(h.domain)).slice(0, 8);
   $("hot").innerHTML = rows.map(h => {
-    const arts = h.urls.map(u => BY_URL[u]).filter(Boolean).slice(0, 2);
-    return `<div class="topic"><button type="button" class="lbl" data-l="${esc(h.label)}" aria-pressed="${state.topic === h.label}">${sw(DOM[h.domain].color)}${esc(h.label)}</button> <span class="m">${plural(h.count, "contenu")} · ${plural(h.sources, "source")}</span>` +
-      `<ul>${arts.map(a => `<li><a href="${esc(safeUrl(a.u))}" target="_blank" rel="noopener noreferrer">${esc(a.t)}</a> <span class="m">— ${esc(a.s)}</span></li>`).join("")}</ul></div>`;
+    const arts = h.urls.map(u => BY_URL[u]).filter(Boolean);
+    return `<div class="topic"><button type="button" class="lbl" data-l="${esc(h.label)}" aria-pressed="${state.topic === h.label}">${sw(DOM[h.domain].color)}${esc(h.label)}</button>` +
+      `<details data-l="${esc(h.label)}"${hotOpen.has(h.label) ? " open" : ""}><summary title="Afficher chaque source et ses contenus">${plural(h.count, "contenu")} · ${plural(h.sources, "source")}</summary>` +
+      `<div class="srcs">${hotSources(arts)}</div></details>` +
+      `<ul class="preview">${arts.slice(0, 2).map(a => `<li>${link(a)} <span class="m">— ${esc(a.s)}</span></li>`).join("")}</ul></div>`;
   }).join("") || `<div class="empty">Aucun sujet repris par plusieurs sources cette semaine${state.domains.length ? " dans ces sujets" : ""}.</div>`;
   $("hot").querySelectorAll(".lbl").forEach(b => b.onclick = () => { state.topic = state.topic === b.dataset.l ? "" : b.dataset.l; changed(); scrollToList(); });
+  $("hot").querySelectorAll("details").forEach(d => d.ontoggle = () => { if (d.open) hotOpen.add(d.dataset.l); else hotOpen.delete(d.dataset.l); });
 }
 
 // ---------- emerging terms ----------

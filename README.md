@@ -24,7 +24,7 @@ GitHub Actions (cron 05:30 UTC, tous les jours)
 | **Chiffres clés** | Contenus sur la période, nouveaux de la semaine, sources actives, sujets chauds. |
 | **Tendances par sujet** | Barres empilées : contenus par semaine et par sujet, avec infobulle au survol. |
 | **Nuage de mots** | Mots les plus fréquents des titres de la sélection. Un clic lance la recherche sur ce mot ; « Revenir au nuage de mots » rétablit le nuage complet. |
-| **Sujets chauds de la semaine** | Groupes de titres partagés par au moins 2 sources sur 7 jours, calculés sujet par sujet et nommés par le LLM. |
+| **Sujets chauds de la semaine** | Groupes de titres partagés par au moins 2 sources sur 7 jours, calculés sujet par sujet et nommés par le LLM. Un clic sur « N contenus · N sources » déplie le détail, source par source. |
 | **Termes émergents** | Termes au moins 2 fois plus fréquents cette semaine que sur les 4 précédentes. Section active après 4 semaines d'historique. |
 | **Benchmark des écoles** | Affiché quand le tag Benchmark est sélectionné : carte de chaleur écoles × catégories et dernières actualités. Les écoles sont définies dans `entities.json`. |
 | **Qui en parle ?** | Sources les plus actives sur la sélection. Un clic filtre la liste. |
