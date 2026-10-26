@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sources · Radar Pédago</title>
+<meta name="description" content="Liste des sources d'information dont proviennent les contenus de Radar Pédago, classées par sujet.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23104281'/%3E%3Cpath d='M19.5 27.5c4 .5 6-1.5 6-5' fill='none' stroke='%23c49a66' stroke-width='2' stroke-linecap='round'/%3E%3Cellipse cx='16' cy='21' rx='5.2' ry='7.5' fill='%23d9b88a'/%3E%3Cellipse cx='16' cy='22' rx='3.2' ry='5.5' fill='%23f1dfc0'/%3E%3Ccircle cx='11.9' cy='8' r='1.4' fill='%236b4a2b'/%3E%3Ccircle cx='20.1' cy='8' r='1.4' fill='%236b4a2b'/%3E%3Cellipse cx='16' cy='9.6' rx='4.3' ry='4.7' fill='%23d9b88a'/%3E%3Cellipse cx='14.2' cy='9.3' rx='1.3' ry='1.6' fill='%233b2a1a'/%3E%3Cellipse cx='17.8' cy='9.3' rx='1.3' ry='1.6' fill='%233b2a1a'/%3E%3Cellipse cx='16' cy='12.2' rx='1.9' ry='1.5' fill='%23f1dfc0'/%3E%3Cellipse cx='16' cy='11.5' rx='.85' ry='.6' fill='%233b2a1a'/%3E%3Cpath d='M12.6 15.6c-.6 2.4.6 3.6 1.8 3.9M19.4 15.6c.6 2.4-.6 3.6-1.8 3.9' fill='none' stroke='%23c49a66' stroke-width='1.7' stroke-linecap='round'/%3E%3Cellipse cx='13.4' cy='28.6' rx='1.9' ry='.9' fill='%23c49a66'/%3E%3Cellipse cx='18.6' cy='28.6' rx='1.9' ry='.9' fill='%23c49a66'/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme:light;
+  --plane:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6f6e69;--grid:#e1e0d9;
+  --border:rgba(11,11,11,.10);--hover:rgba(11,11,11,.045);--brand:#104281;--brand-ink:#ffffff;--focus:#2a78d6;
+  --dom-1:#2a78d6;--dom-2:#eb6834;--dom-3:#1baf7a;--dom-4:#eda100;--dom-5:#e87ba4;--dom-6:#008300;
+  --shadow:0 1px 2px rgba(11,11,11,.05),0 4px 14px rgba(11,11,11,.04);
+}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+  color-scheme:dark;
+  --plane:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a29b;--grid:#2c2c2a;
+  --border:rgba(255,255,255,.10);--hover:rgba(255,255,255,.06);--brand:#184f95;--brand-ink:#ffffff;--focus:#6da7ec;
+  --dom-1:#3987e5;--dom-2:#d95926;--dom-3:#199e70;--dom-4:#c98500;--dom-5:#d55181;--dom-6:#008300;
+  --shadow:none;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --plane:#0d0d0d;--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a29b;--grid:#2c2c2a;
+  --border:rgba(255,255,255,.10);--hover:rgba(255,255,255,.06);--brand:#184f95;--brand-ink:#ffffff;--focus:#6da7ec;
+  --dom-1:#3987e5;--dom-2:#d95926;--dom-3:#199e70;--dom-4:#c98500;--dom-5:#d55181;--dom-6:#008300;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+header.top{background:var(--brand);color:var(--brand-ink)}
+header.top .wrap{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:22px;padding-bottom:18px}
+header.top h1{margin:0;font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-.01em}
+header.top p{margin:2px 0 0;font-size:13px;opacity:.85}
+.back{font-size:13.5px;opacity:.9}
+main.wrap{padding-top:20px;padding-bottom:30px}
+.intro{color:var(--ink2);font-size:14px;margin:0 0 16px}
+/* columns rather than a grid: short topics stack under each other instead of leaving holes beside a long one */
+.grid{columns:2;column-gap:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);min-width:0;break-inside:avoid;margin:0 0 14px}
+h2{font-size:15px;font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+h2 .n{font-weight:400;font-size:12.5px;color:var(--muted)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--grid);font-size:14px}
+li:last-child{border-bottom:0}
+li a{text-decoration:none;min-width:0}li a:hover{text-decoration:underline}
+li .ext{color:var(--muted);font-size:12px;margin-left:3px}
+li .c{color:var(--muted);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);font-size:13.5px}
+footer{color:var(--muted);font-size:12.5px;padding:8px 0 40px}
+@media (max-width:900px){.grid{columns:1}}
+@media (forced-colors:active){.sw{forced-color-adjust:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div><h1>Sources de la veille</h1><p>Radar Pédago · veille de l'ingénierie pédagogique</p></div>
+  <a class="back" href="index.html">← Retour au tableau de bord</a>
+</div></header>
+<main class="wrap">
+  <p class="intro">__INTRO__</p>
+  <div class="grid">
+__SECTIONS__
+  </div>
+</main>
+<footer class="wrap">__FOOTER__</footer>
+</body>
+</html>

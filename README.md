@@ -28,6 +28,7 @@ GitHub Actions (cron 05:30 UTC, tous les jours)
 | **Termes émergents** | Termes au moins 2 fois plus fréquents cette semaine que sur les 4 précédentes. Section active après 4 semaines d'historique. |
 | **Benchmark des écoles** | Affiché quand le tag Benchmark est sélectionné : carte de chaleur écoles × catégories et dernières actualités. Les écoles sont définies dans `entities.json`. |
 | **Qui en parle ?** | Sources les plus actives sur la sélection. Un clic filtre la liste. |
+| **Sources de la veille** | Page séparée (`sources.html`, lien dans l'en-tête et le pied de page) : chaque source ayant fourni au moins un contenu sur 26 semaines, une seule fois, groupée par sujet, avec un lien vers son site et son nombre de contenus. Le lien est déduit de `sources.json` ; ajouter `"site"` pour le préciser (revues Crossref). |
 | **Contenus** | Titre en français (titre original affiché s'il a été traduit), source, date, sujet, catégorie, type et résumé. Tri par date ou par pertinence pendant une recherche. |
 
 Tous les graphiques suivent les filtres actifs. La page est autonome : aucune donnée ne part vers un serveur, et la recherche sémantique s'exécute dans le navigateur.

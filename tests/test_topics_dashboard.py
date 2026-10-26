@@ -1,3 +1,4 @@
+from html import escape
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -85,3 +86,26 @@ def test_export_writes_page_and_aligned_vectors(tmp_path):
     dashboard.export(str(out), store=store, index=EntityIndex.load(), client=None, with_embeddings=False)
     assert not (tmp_path / "site" / "embeddings.bin").exists()
     assert "</script>" not in html.split('<script id="data" type="application/json">')[1].split("</script>")[0]
+    # the sources page lists each source once, with its count
+    sources = (tmp_path / "site" / "sources.html").read_text(encoding="utf-8")
+    names = {a["s"] for a in data["articles"]}
+    assert all(sources.count(f">{escape(n)}<") == 1 for n in names)
+    assert f"{len(names)} sources" in sources and "__SECTIONS__" not in sources
+
+
+def test_source_directory_dedupes_groups_and_links():
+    arts = [{"s": "Blog B", "d": "pedagogie"}, {"s": "Blog B", "d": "recherche"}, {"s": "Revue A", "d": "pedagogie"},
+            {"s": "Inconnue", "d": "innovation_ia"}, {"s": "Actu (Google News)", "d": "enseignement_sup"}]
+    configs = {"Blog B": {"name": "Blog B", "domain": "pedagogie", "type": "rss", "url": "https://blog-b.fr/feed/x"},
+               "Revue A": {"name": "Revue A", "domain": "pedagogie", "type": "crossref", "journal": "A"},
+               "Actu (Google News)": {"name": "Actu (Google News)", "domain": "enseignement_sup", "type": "gnews",
+                                      "query": "\"enseignement supérieur\" when:3d"}}
+    d = dashboard.source_directory(arts, configs)
+    assert [(s["name"], s["domain"], s["count"]) for s in d] == [
+        ("Blog B", "pedagogie", 2), ("Revue A", "pedagogie", 1),
+        ("Actu (Google News)", "enseignement_sup", 1), ("Inconnue", "innovation_ia", 1)]
+    by = {s["name"]: s["url"] for s in d}
+    assert by["Blog B"] == "https://blog-b.fr/" and by["Revue A"] == "" and by["Inconnue"] == ""
+    assert by["Actu (Google News)"].startswith("https://news.google.com/search?q=") and "when" not in by["Actu (Google News)"]
+    page = dashboard.render_sources_html(d, datetime(2026, 10, 26, tzinfo=timezone.utc), 183)
+    assert 'href="https://blog-b.fr/"' in page and "<span>Revue A</span>" in page and "4 sources" in page

@@ -292,6 +292,7 @@ footer p{margin:4px 0}
 
   <footer>
     <p>Titres traduits et résumés générés automatiquement par IA à partir des titres et extraits publics : vérifiez la source avant de citer.</p>
+    <p><a href="sources.html">Voir la liste des sources de la veille</a></p>
     <p id="foot-sem"></p>
   </footer>
 </main>
@@ -498,7 +499,8 @@ function renderControls() {
 
 function renderMeta() {
   const g = new Date(D.generated_at);
-  $("meta").innerHTML = `Mis à jour le ${g.toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long"})}<br>${plural(D.articles.length, "contenu")} sur 26 semaines · mise à jour chaque lundi`;
+  const nSources = new Set(D.articles.map(a => a.s).filter(Boolean)).size;
+  $("meta").innerHTML = `Mis à jour le ${g.toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long"})}<br>${plural(D.articles.length, "contenu")} sur 26 semaines · <a href="sources.html" id="sources-link">${plural(nSources, "source")}</a> · mise à jour chaque lundi`;
 }
 
 // ---------- KPIs ----------
