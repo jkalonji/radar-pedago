@@ -19,15 +19,14 @@ GitHub Actions (cron 05:30 UTC, tous les jours)
 | Section | Contenu |
 |---|---|
 | **Barre de recherche** | Recherche par mots-clés, développée avec le glossaire des sigles (APC → approche par compétences, AFEST, EIAH…), puis **recherche sémantique** : « évaluation par compétences » trouve aussi « APC », et une requête en français trouve des articles en anglais. |
-| **Tags** | Les 6 sujets (sélection multiple). Quand un seul sujet est choisi, ses catégories apparaissent en sous-tags. S'y ajoutent un filtre par type de contenu et la période (4, 12 ou 26 semaines). |
+| **Tags** | Les 6 sujets (sélection multiple) : les tags choisis sont entourés en vert, les autres grisés. Quand un seul sujet est choisi, ses catégories apparaissent en sous-tags. S'y ajoutent un filtre par type de contenu et la période (4, 12 ou 26 semaines). |
 | **Mémorisation** | Les filtres et la recherche sont gardés dans le navigateur de chacun et repris dans l'URL : copier le lien partage la vue filtrée. |
 | **Chiffres clés** | Contenus sur la période, nouveaux de la semaine, sources actives, sujets chauds. |
 | **Tendances par sujet** | Barres empilées : contenus par semaine et par sujet, avec infobulle au survol. |
-| **Nuage de mots** | Mots les plus fréquents des titres de la sélection. Un clic lance la recherche sur ce mot. |
+| **Nuage de mots** | Mots les plus fréquents des titres de la sélection. Un clic lance la recherche sur ce mot ; « Revenir au nuage de mots » rétablit le nuage complet. |
 | **Sujets chauds de la semaine** | Groupes de titres partagés par au moins 2 sources sur 7 jours, calculés sujet par sujet et nommés par le LLM. |
 | **Termes émergents** | Termes au moins 2 fois plus fréquents cette semaine que sur les 4 précédentes. Section active après 4 semaines d'historique. |
-| **Types de contenu** | Étude / recherche, retour d'expérience, outil / ressource, actualité, réglementation, événement, podcast / vidéo. |
-| **Benchmark des écoles** | Carte de chaleur écoles × catégories et dernières actualités. Les écoles sont définies dans `entities.json`. |
+| **Benchmark des écoles** | Affiché quand le tag Benchmark est sélectionné : carte de chaleur écoles × catégories et dernières actualités. Les écoles sont définies dans `entities.json`. |
 | **Qui en parle ?** | Sources les plus actives sur la sélection. Un clic filtre la liste. |
 | **Contenus** | Titre en français (titre original affiché s'il a été traduit), source, date, sujet, catégorie, type et résumé. Tri par date ou par pertinence pendant une recherche. |
 

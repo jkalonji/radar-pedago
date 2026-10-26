@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Radar Pédago</title>
 <meta name="description" content="Veille de l'équipe d'ingénierie pédagogique : design UX, pédagogie, recherche, enseignement supérieur, benchmark des écoles, innovation et IA.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23104281'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2386b6ef' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23104281'/%3E%3Cpath d='M19.5 27.5c4 .5 6-1.5 6-5' fill='none' stroke='%23c49a66' stroke-width='2' stroke-linecap='round'/%3E%3Cellipse cx='16' cy='21' rx='5.2' ry='7.5' fill='%23d9b88a'/%3E%3Cellipse cx='16' cy='22' rx='3.2' ry='5.5' fill='%23f1dfc0'/%3E%3Ccircle cx='11.9' cy='8' r='1.4' fill='%236b4a2b'/%3E%3Ccircle cx='20.1' cy='8' r='1.4' fill='%236b4a2b'/%3E%3Cellipse cx='16' cy='9.6' rx='4.3' ry='4.7' fill='%23d9b88a'/%3E%3Cellipse cx='14.2' cy='9.3' rx='1.3' ry='1.6' fill='%233b2a1a'/%3E%3Cellipse cx='17.8' cy='9.3' rx='1.3' ry='1.6' fill='%233b2a1a'/%3E%3Cellipse cx='16' cy='12.2' rx='1.9' ry='1.5' fill='%23f1dfc0'/%3E%3Cellipse cx='16' cy='11.5' rx='.85' ry='.6' fill='%233b2a1a'/%3E%3Cpath d='M12.6 15.6c-.6 2.4.6 3.6 1.8 3.9M19.4 15.6c.6 2.4-.6 3.6-1.8 3.9' fill='none' stroke='%23c49a66' stroke-width='1.7' stroke-linecap='round'/%3E%3Cellipse cx='13.4' cy='28.6' rx='1.9' ry='.9' fill='%23c49a66'/%3E%3Cellipse cx='18.6' cy='28.6' rx='1.9' ry='.9' fill='%23c49a66'/%3E%3C/svg%3E">
 <style>
 :root{
   color-scheme:light;
@@ -13,6 +13,7 @@
   --grid:#e1e0d9;--base:#c3c2b7;--border:rgba(11,11,11,.10);--hover:rgba(11,11,11,.045);--brand:#104281;--brand-ink:#ffffff;
   --focus:#2a78d6;--seq-1:#cde2fb;--seq-2:#9ec5f4;--seq-3:#6da7ec;--seq-4:#3987e5;--seq-5:#256abf;--seq-6:#184f95;
   --dom-1:#2a78d6;--dom-2:#eb6834;--dom-3:#1baf7a;--dom-4:#eda100;--dom-5:#e87ba4;--dom-6:#008300;--bar:#86b6ef;
+  --sel:#1a7f37;--sel-bg:rgba(26,127,55,.08);
   --shadow:0 1px 2px rgba(11,11,11,.05),0 4px 14px rgba(11,11,11,.04);
 }
 @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
@@ -21,6 +22,7 @@
   --grid:#2c2c2a;--base:#383835;--border:rgba(255,255,255,.10);--hover:rgba(255,255,255,.06);--brand:#184f95;--brand-ink:#ffffff;
   --focus:#6da7ec;--seq-1:#1c2b3d;--seq-2:#104281;--seq-3:#1c5cab;--seq-4:#2a78d6;--seq-5:#5598e7;--seq-6:#9ec5f4;
   --dom-1:#3987e5;--dom-2:#d95926;--dom-3:#199e70;--dom-4:#c98500;--dom-5:#d55181;--dom-6:#008300;--bar:#256abf;
+  --sel:#3fb950;--sel-bg:rgba(63,185,80,.12);
   --shadow:none;
 }}
 :root[data-theme="dark"]{
@@ -29,6 +31,7 @@
   --grid:#2c2c2a;--base:#383835;--border:rgba(255,255,255,.10);--hover:rgba(255,255,255,.06);--brand:#184f95;--brand-ink:#ffffff;
   --focus:#6da7ec;--seq-1:#1c2b3d;--seq-2:#104281;--seq-3:#1c5cab;--seq-4:#2a78d6;--seq-5:#5598e7;--seq-6:#9ec5f4;
   --dom-1:#3987e5;--dom-2:#d95926;--dom-3:#199e70;--dom-4:#c98500;--dom-5:#d55181;--dom-6:#008300;--bar:#256abf;
+  --sel:#3fb950;--sel-bg:rgba(63,185,80,.12);
   --shadow:none;
 }
 *{box-sizing:border-box}
@@ -69,9 +72,13 @@ select{border:1px solid var(--base);background:var(--raised);color:var(--ink);bo
 .tag{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--base);background:var(--raised);border-radius:999px;padding:5px 12px 5px 10px;cursor:pointer;font-size:13.5px;color:var(--ink);white-space:nowrap}
 .tag:hover{background:var(--hover)}
 .tag .n{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
-.tag[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:600}
+.tag[aria-pressed="true"]{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel);background:var(--sel-bg);font-weight:600}
 .tag.sub{font-size:12.5px;padding:3px 10px;border-style:dashed}
 .tag.sub[aria-pressed="true"]{border-style:solid}
+/* once something is picked, the other tags fade to grey so the selection stands out */
+.tags.picking .tag[aria-pressed="false"]{color:var(--muted);background:transparent;border-color:var(--grid)}
+.tags.picking .tag[aria-pressed="false"] .sw{filter:grayscale(1);opacity:.5}
+.tags.picking .tag[aria-pressed="false"]:hover{color:var(--ink);background:var(--hover)}
 .sw{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
 .hint{font-size:12.5px;color:var(--muted)}
 .hint b{color:var(--ink2);font-weight:600}
@@ -112,6 +119,9 @@ h2{font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:-.005em}
 .cloud{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline;justify-content:center;padding:6px 0;min-height:170px}
 .cloud button{border:0;background:none;padding:0 2px;cursor:pointer;line-height:1.2;border-radius:4px}
 .cloud button:hover{text-decoration:underline;background:var(--hover)}
+.backbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--base);background:var(--raised);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px;color:var(--ink)}
+.backbtn:hover{background:var(--hover)}
+.backbtn[hidden]{display:none}
 
 /* lists */
 .topic{padding:10px 0;border-bottom:1px solid var(--grid)}
@@ -167,7 +177,18 @@ footer p{margin:4px 0}
 <body>
 <header class="top"><div class="wrap">
   <div class="brand">
-    <svg width="38" height="38" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="rgba(255,255,255,.12)"/><circle cx="16" cy="16" r="10" fill="none" stroke="#86b6ef" stroke-width="2"/><circle cx="16" cy="16" r="5" fill="none" stroke="#cde2fb" stroke-width="2"/><path d="M16 16 L26 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.2" fill="#fff"/></svg>
+    <svg width="44" height="44" viewBox="0 0 32 32" aria-hidden="true"><!-- meerkat standing, facing front -->
+      <circle cx="16" cy="16" r="16" fill="rgba(255,255,255,.12)"/>
+      <path d="M19.5 27.5c4 .5 6-1.5 6-5" fill="none" stroke="#c49a66" stroke-width="2" stroke-linecap="round"/>
+      <ellipse cx="16" cy="21" rx="5.2" ry="7.5" fill="#d9b88a"/><ellipse cx="16" cy="22" rx="3.2" ry="5.5" fill="#f1dfc0"/>
+      <circle cx="11.9" cy="8" r="1.4" fill="#6b4a2b"/><circle cx="20.1" cy="8" r="1.4" fill="#6b4a2b"/>
+      <ellipse cx="16" cy="9.6" rx="4.3" ry="4.7" fill="#d9b88a"/>
+      <ellipse cx="14.2" cy="9.3" rx="1.3" ry="1.6" fill="#3b2a1a"/><ellipse cx="17.8" cy="9.3" rx="1.3" ry="1.6" fill="#3b2a1a"/>
+      <circle cx="14.5" cy="8.8" r=".4" fill="#fff"/><circle cx="18.1" cy="8.8" r=".4" fill="#fff"/>
+      <ellipse cx="16" cy="12.2" rx="1.9" ry="1.5" fill="#f1dfc0"/><ellipse cx="16" cy="11.5" rx=".85" ry=".6" fill="#3b2a1a"/>
+      <path d="M12.6 15.6c-.6 2.4.6 3.6 1.8 3.9M19.4 15.6c.6 2.4-.6 3.6-1.8 3.9" fill="none" stroke="#c49a66" stroke-width="1.7" stroke-linecap="round"/>
+      <ellipse cx="13.4" cy="28.6" rx="1.9" ry=".9" fill="#c49a66"/><ellipse cx="18.6" cy="28.6" rx="1.9" ry=".9" fill="#c49a66"/>
+    </svg>
     <div><h1>Radar Pédago</h1><p>Veille de l'ingénierie pédagogique</p></div>
   </div>
   <div class="meta" id="meta"></div>
@@ -211,6 +232,7 @@ footer p{margin:4px 0}
     <div class="card">
       <h2>Nuage de mots</h2>
       <p class="sub-h">Mots les plus fréquents dans les titres de la sélection · clic = rechercher ce mot</p>
+      <button type="button" class="backbtn cloud-reset" hidden>← Revenir au nuage de mots</button>
       <div class="cloud" id="cloud"></div>
     </div>
     <div class="card">
@@ -220,20 +242,15 @@ footer p{margin:4px 0}
     </div>
   </section>
 
-  <section class="grid cols">
+  <section>
     <div class="card">
       <h2>Termes émergents</h2>
       <p class="sub-h" id="emerging-sub">Termes au moins deux fois plus fréquents cette semaine que sur les 4 précédentes</p>
       <div id="emerging"></div>
     </div>
-    <div class="card">
-      <h2>Types de contenu</h2>
-      <p class="sub-h">Répartition de la sélection · clic = filtrer</p>
-      <div id="types"></div>
-    </div>
   </section>
 
-  <section id="bench-sec">
+  <section id="bench-sec" hidden>
     <div class="card">
       <h2>Benchmark des écoles</h2>
       <p class="sub-h">Contenus citant chaque école, par catégorie, sur la période</p>
@@ -254,7 +271,7 @@ footer p{margin:4px 0}
     <div class="card">
       <div class="list-head">
         <div><h2 id="list-title">Contenus</h2><p class="sub-h" id="list-count" style="margin:0"></p></div>
-        <div class="seg" id="sort" role="group" aria-label="Tri"></div>
+        <div class="row"><button type="button" class="backbtn cloud-reset" hidden>← Revenir au nuage de mots</button><div class="seg" id="sort" role="group" aria-label="Tri"></div></div>
       </div>
       <div id="list"></div>
       <button class="more" id="more" type="button" hidden>Voir plus</button>
@@ -410,7 +427,7 @@ function selection(opts = {}) {
   return D.articles.filter(a => a._t >= start
     && (opts.ignoreDomains || !state.domains.length || a.ds.some(d => state.domains.includes(d)))
     && (opts.ignoreDomains || !state.cat || (a.d === state.domains[0] && a.c === state.cat))
-    && (opts.ignoreType || !state.type || a.y === state.type)
+    && (!state.type || a.y === state.type)
     && (!hot || hot.has(a.u))
     && (!state.school || a.e.includes(state.school))
     && (!state.source || a.s === state.source)
@@ -437,6 +454,7 @@ function renderControls() {
   base.forEach(a => a.ds.forEach(d => counts[d] = (counts[d] || 0) + 1));
   $("tags").innerHTML = D.domains.map(d => `<button type="button" class="tag" data-d="${d.id}" aria-pressed="${state.domains.includes(d.id)}">${sw(DOM[d.id].color)}${esc(d.label)} <span class="n">${fmt(counts[d.id] || 0)}</span></button>`).join("")
     + (state.domains.length ? `<button type="button" class="linkbtn" id="all-tags">Tous les sujets</button>` : "");
+  $("tags").classList.toggle("picking", state.domains.length > 0);
   $("tags").querySelectorAll(".tag").forEach(b => b.onclick = () => {
     const d = b.dataset.d, i = state.domains.indexOf(d);
     if (i >= 0) state.domains.splice(i, 1); else state.domains.push(d);
@@ -445,6 +463,7 @@ function renderControls() {
   if ($("all-tags")) $("all-tags").onclick = () => { state.domains = []; state.cat = ""; changed(); };
   const one = state.domains.length === 1 ? DOM[state.domains[0]] : null;
   $("subtags").hidden = !one;
+  $("subtags").classList.toggle("picking", !!state.cat);
   if (one) {
     const cc = {}; base.filter(a => a.d === one.id).forEach(a => cc[a.c] = (cc[a.c] || 0) + 1);
     $("subtags").innerHTML = one.categories.map(c => `<button type="button" class="tag sub" data-c="${esc(c)}" aria-pressed="${c === state.cat}">${esc(c)} <span class="n">${fmt(cc[c] || 0)}</span></button>`).join("");
@@ -537,8 +556,17 @@ function renderCloud(list) {
     const r = max === min ? .5 : (Math.sqrt(n) - Math.sqrt(min)) / (Math.sqrt(max) - Math.sqrt(min));
     return `<button type="button" data-w="${esc(w)}" style="font-size:${(13 + r * (innerWidth < 600 ? 17 : 26)).toFixed(0)}px;font-weight:${r > .55 ? 700 : r > .25 ? 600 : 400};color:${r > .3 ? "var(--ink)" : "var(--ink2)"}" title="${plural(n, "contenu")}">${esc(w)}</button>`;
   }).join("");
-  $("cloud").querySelectorAll("button").forEach(b => b.onclick = () => setQuery(b.dataset.w));
+  $("cloud").querySelectorAll("button").forEach(b => b.onclick = () => { cloudWord = b.dataset.w; setQuery(b.dataset.w); });
 }
+// a word picked in the cloud narrows the cloud to its own results: this brings the full cloud back
+let cloudWord = "";
+function renderCloudReset() {
+  document.querySelectorAll(".cloud-reset").forEach(b => b.hidden = !(cloudWord && state.q === cloudWord));
+}
+document.querySelectorAll(".cloud-reset").forEach(b => b.onclick = () => {
+  cloudWord = ""; state.q = ""; state.sort = "date"; scores = null; searchSeq++; changed();
+  $("cloud").closest(".card").scrollIntoView({behavior: "smooth", block: "start"});
+});
 
 // ---------- hot topics ----------
 function renderHot() {
@@ -568,20 +596,9 @@ function renderEmerging() {
   $("emerging").querySelectorAll("button").forEach(b => b.onclick = () => setQuery(b.dataset.w));
 }
 
-// ---------- content types ----------
-function renderTypes() {
-  const list = selection({ignoreType: true}), c = {};
-  list.forEach(a => c[a.y] = (c[a.y] || 0) + 1);
-  const rows = D.content_types.map(t => [t, c[t.name] || 0]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]);
-  const max = Math.max(...rows.map(r => r[1]), 1), total = list.length || 1;
-  $("types").innerHTML = rows.length ? `<table><tbody>` + rows.map(([t, n]) => `<tr class="click${t.name === state.type ? " on" : ""}" data-t="${esc(t.name)}" tabindex="0"><td>${t.emoji} ${esc(t.name)}</td><td style="width:42%"><div class="hbar" style="width:${(n / max * 100).toFixed(1)}%" title="${n} contenus"></div></td><td class="n">${fmt(n)}</td><td class="n" style="color:var(--muted)">${Math.round(n / total * 100)} %</td></tr>`).join("") + `</tbody></table>`
-    : `<div class="empty">Aucun contenu dans la sélection.</div>`;
-  $("types").querySelectorAll("tr.click").forEach(r => { const go = () => { state.type = state.type === r.dataset.t ? "" : r.dataset.t; changed(); }; r.onclick = go; r.onkeydown = e => { if (e.key === "Enter") go(); }; });
-}
-
-// ---------- benchmark ----------
+// ---------- benchmark (only once the Benchmark tag is picked) ----------
 function renderBench(list) {
-  const show = D.schools.length && (!state.domains.length || state.domains.includes("benchmark"));
+  const show = D.schools.length && state.domains.includes("benchmark");
   $("bench-sec").hidden = !show;
   if (!show) return;
   const cats = DOM.benchmark.categories, start = periodStart();
@@ -632,7 +649,7 @@ function renderList(list) {
 function renderAll() {
   const list = selection();
   renderControls(); renderMeta(); renderKPIs(list); renderTrend(list); renderCloud(list); renderHot(); renderEmerging();
-  renderTypes(); renderBench(list); renderSources(list); renderList(list);
+  renderBench(list); renderSources(list); renderList(list); renderCloudReset();
 }
 function changed() { state.shown = 25; saveState(); renderAll(); }
 function scrollToList() { $("articles").scrollIntoView({behavior: "smooth", block: "start"}); }

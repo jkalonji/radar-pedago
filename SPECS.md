@@ -97,8 +97,7 @@ Volume estimé : quelques centaines d'articles par semaine. Une année tient en 
 | **Nuage de mots** | Termes les plus fréquents des titres et résumés, avec mots vides français et regroupement des formes proches. Un clic applique le filtre. Le nuage respecte les filtres actifs. |
 | **Sujets chauds** | Regroupement des titres par n-grammes, scopé par domaine comme dans Veille-IA. Chaque groupe reçoit un label en français généré par le LLM. Seuil : au moins 3 articles provenant d'au moins 2 sources dans la semaine. |
 | **Termes émergents** | Termes dont le volume de la semaine atteint au moins 2 × la moyenne des 4 semaines précédentes, avec un plancher. Section actif après 4 semaines d'historique. |
-| **Types de contenu** | Répartition par type de contenu, globale ou par domaine. |
-| **Benchmark écoles** | Carte de chaleur écoles × catégories, et dernières actualités par école. |
+| **Benchmark écoles** | Affiché seulement quand le tag Benchmark est sélectionné. Carte de chaleur écoles × catégories, et dernières actualités par école. |
 | **Qui en parle ?** | Pour un terme ou un sujet, les sources classées par nombre d'articles. |
 | **Articles** | Titre, source, date, résumé en français, tags et lien. Tri par date ou par pertinence quand une recherche est active. |
 

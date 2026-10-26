@@ -77,7 +77,13 @@ def test_tags_persist_and_shape_every_section(site, browser):
     assert page.get_attribute('#period button[data-w="26"]', "aria-pressed") == "true"
     assert count(page) >= sub
     assert page.is_hidden("#bench-sec")   # benchmark hidden when only Pédagogie is selected
+    assert "picking" in page.get_attribute("#tags", "class")   # unselected tags are greyed out
+    page.click('#tags .tag[data-d="benchmark"]')
+    assert not page.is_hidden("#bench-sec")
     page.click("#reset") if page.query_selector("#reset") else page.click("#all-tags")
+    assert page.is_hidden("#bench-sec")   # no tag picked: benchmark stays hidden
+    assert "picking" not in page.get_attribute("#tags", "class")
+    assert page.query_selector("#types") is None
     assert errors == []
     ctx.close()
 
@@ -112,10 +118,20 @@ def test_cloud_click_and_hot_topic_filter(site, browser):
     errors = []
     ctx, page = new_page(browser, errors)
     page.goto(site + "#w=26")
+    words = page.locator("#cloud button").count()
+    assert page.locator(".cloud-reset").first.is_hidden()
     word = page.locator("#cloud button").first.inner_text()
     page.locator("#cloud button").first.click()
     page.wait_for_function(f"document.querySelector('#list-title').textContent.includes({word!r})")
     assert page.input_value("#q") == word
+    page.wait_for_timeout(800)
+    page.locator("#articles .cloud-reset").click()   # back to the full cloud without reloading
+    assert page.inner_text("#list-title") == "Contenus"
+    assert page.input_value("#q") == ""
+    assert page.locator("#cloud button").count() == words
+    assert page.locator(".cloud-reset").first.is_hidden()
+    page.locator("#cloud button").first.click()
+    page.wait_for_function(f"document.querySelector('#list-title').textContent.includes({word!r})")
     page.click("#q-clear")
     page.wait_for_timeout(800)   # let the smooth scroll to the list finish before clicking elsewhere
     if page.locator("#hot .lbl").count():
