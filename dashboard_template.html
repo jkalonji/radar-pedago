@@ -170,6 +170,17 @@ tr.click.on td{background:var(--hover);font-weight:600}
 .art .sm{margin:4px 0 0;color:var(--ink2);font-size:14px}
 .art .src{font-size:12.5px;color:var(--muted)}
 .score{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* research agent: finds are marked with an icon and a text, never by colour alone */
+.agent{display:inline-flex;align-items:center;gap:4px;border:1px dashed var(--axis);border-radius:999px;padding:0 8px;font-size:12px;color:var(--ink);background:var(--hover);white-space:nowrap}
+.art .why{font-size:12.5px;color:var(--muted);margin-top:2px}
+.disc{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--grid);font-size:14px}
+.disc:last-child{border-bottom:0}
+.disc a{text-decoration:none;font-weight:600}.disc a:hover{text-decoration:underline}
+.disc .m{font-size:12.5px;color:var(--muted);margin-top:1px}
+.disc>div{min-width:0}
+.agent-foot{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;margin-top:10px;font-size:13px;color:var(--ink2)}
+.agent-foot:empty{display:none}
+.backbtn[aria-pressed="true"]{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel);background:var(--sel-bg);font-weight:600}
 button.more{margin:14px auto 0;display:block;background:var(--raised);border:1px solid var(--base);border-radius:10px;padding:9px 22px;cursor:pointer}
 button.more:hover{background:var(--hover)}
 footer{color:var(--muted);font-size:12.5px;padding:8px 0 40px}
@@ -219,6 +230,8 @@ footer p{margin:4px 0}
     <div class="seg" id="period" role="group" aria-label="Période"></div>
     <label class="sr" for="type">Type de contenu</label>
     <select id="type"></select>
+    <label class="sr" for="origin">Origine des contenus</label>
+    <select id="origin" hidden></select>
   </div>
   <div class="tags" id="tags" role="group" aria-label="Sujets"></div>
   <div class="tags" id="subtags" role="group" aria-label="Catégories" hidden></div>
@@ -230,6 +243,17 @@ footer p{margin:4px 0}
 
 <main class="wrap">
   <section aria-label="Chiffres clés"><div class="grid kpis" id="kpis"></div></section>
+
+  <section id="agent-sec" hidden>
+    <div class="card">
+      <div class="list-head">
+        <div><h2>🔎 Découvertes de l'agent</h2><p class="sub-h" style="margin:0">Contenus trouvés par l'agent de recherche sur le web, hors des sources suivies · nouvelle recherche chaque lundi sur les 6 sujets</p></div>
+        <button type="button" class="backbtn" id="agent-all" aria-pressed="false"></button>
+      </div>
+      <div id="agent-list"></div>
+      <div class="agent-foot" id="agent-cands"></div>
+    </div>
+  </section>
 
   <section>
     <div class="card">
@@ -292,6 +316,7 @@ footer p{margin:4px 0}
 
   <footer>
     <p>Titres traduits et résumés générés automatiquement par IA à partir des titres et extraits publics : vérifiez la source avant de citer.</p>
+    <p>Les contenus marqués 🔎 ont été trouvés par l'agent de recherche (Tavily, Google News) : leur source n'a pas été choisie par l'équipe.</p>
     <p><a href="sources.html">Voir la liste des sources de la veille</a></p>
     <p id="foot-sem"></p>
   </footer>
@@ -328,9 +353,11 @@ D.articles.forEach((a, i) => {
 });
 const BY_URL = Object.fromEntries(D.articles.map(a => [a.u, a]));
 const srcWords = new Set(D.articles.flatMap(a => norm(a.s).match(/[a-z0-9]+/g) || []));
+const HAS_AGENT = D.articles.some(a => a.ag), CANDS = D.candidate_sources || [];
+const ORIGINS = {sources: "📡 Sources suivies", agent: "🔎 Découvertes de l'agent"};
 
 // ---------- state: URL hash > localStorage > defaults ----------
-const state = {weeks: 12, domains: [], cat: "", type: "", q: "", topic: "", school: "", source: "", sort: "date", shown: 25};
+const state = {weeks: 12, domains: [], cat: "", type: "", origin: "", q: "", topic: "", school: "", source: "", sort: "date", shown: 25};
 const PERIODS = [4, 12, 26];
 function readState() {
   let saved = {};
@@ -343,9 +370,11 @@ function readState() {
   state.cat = pick("c", "") || ""; state.type = pick("y", "") || ""; state.q = pick("q", "") || "";
   if (state.domains.length !== 1 || !DOM[state.domains[0]].categories.includes(state.cat)) state.cat = "";
   if (!TYPE_EMOJI[state.type]) state.type = "";
+  state.origin = pick("o", "") || "";
+  if (!HAS_AGENT || !ORIGINS[state.origin]) state.origin = "";
 }
 function saveState() {
-  const s = {w: state.weeks, d: state.domains.join(","), c: state.cat, y: state.type, q: state.q};
+  const s = {w: state.weeks, d: state.domains.join(","), c: state.cat, y: state.type, o: state.origin, q: state.q};
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* storage blocked: the URL still carries the view */ }
   const h = new URLSearchParams(); Object.entries(s).forEach(([k, v]) => { if (v !== "" && !(k === "w" && v === 12)) h.set(k, v); });
   const hash = h.toString();
@@ -441,6 +470,7 @@ function selection(opts = {}) {
     && (opts.ignoreDomains || !state.domains.length || a.ds.some(d => state.domains.includes(d)))
     && (opts.ignoreDomains || !state.cat || (a.d === state.domains[0] && a.c === state.cat))
     && (!state.type || a.y === state.type)
+    && (opts.ignoreOrigin || !state.origin || (state.origin === "agent") === !!a.ag)
     && (!hot || hot.has(a.u))
     && (!state.school || a.e.includes(state.school))
     && (!state.source || a.s === state.source)
@@ -483,6 +513,8 @@ function renderControls() {
     $("subtags").querySelectorAll(".tag").forEach(b => b.onclick = () => { state.cat = state.cat === b.dataset.c ? "" : b.dataset.c; changed(); });
   }
   $("type").innerHTML = `<option value="">Tous les types de contenu</option>` + D.content_types.map(t => `<option value="${esc(t.name)}"${t.name === state.type ? " selected" : ""}>${t.emoji} ${esc(t.name)}</option>`).join("");
+  $("origin").hidden = !HAS_AGENT;
+  $("origin").innerHTML = `<option value="">Toutes les origines</option>` + Object.entries(ORIGINS).map(([k, l]) => `<option value="${k}"${k === state.origin ? " selected" : ""}>${l}</option>`).join("");
   $("q").value = state.q; $("q-clear").hidden = !state.q;
   const chips = [];
   if (state.q) chips.push(["q", `Recherche : « ${state.q} »`]);
@@ -490,29 +522,49 @@ function renderControls() {
   if (state.school) chips.push(["school", `École : ${(SCHOOL[state.school] || {}).label || state.school}`]);
   if (state.source) chips.push(["source", `Source : ${state.source}`]);
   if (state.type) chips.push(["type", `Type : ${state.type}`]);
+  if (state.origin) chips.push(["origin", state.origin === "agent" ? "Origine : découvertes de l'agent" : "Origine : sources suivies"]);
   $("active").innerHTML = chips.map(([k, l]) => `<span class="chip">${esc(l)}<button type="button" data-k="${k}" aria-label="Retirer le filtre ${esc(l)}">✕</button></span>`).join("")
     + (chips.length + state.domains.length > 1 ? `<button type="button" class="linkbtn" id="reset">Tout réinitialiser</button>` : "");
   $("active").querySelectorAll("button[data-k]").forEach(b => b.onclick = () => { state[b.dataset.k] = ""; if (b.dataset.k === "q") { scores = null; searchSeq++; } changed(); });
-  if ($("reset")) $("reset").onclick = () => { Object.assign(state, {domains: [], cat: "", type: "", q: "", topic: "", school: "", source: ""}); scores = null; searchSeq++; changed(); };
+  if ($("reset")) $("reset").onclick = () => { Object.assign(state, {domains: [], cat: "", type: "", origin: "", q: "", topic: "", school: "", source: ""}); scores = null; searchSeq++; changed(); };
   renderSearchStatus();
 }
 
 function renderMeta() {
   const g = new Date(D.generated_at);
-  const nSources = new Set(D.articles.map(a => a.s).filter(Boolean)).size;
+  const nSources = new Set(D.articles.filter(a => !a.ag).map(a => a.s).filter(Boolean)).size;   // as on sources.html
   $("meta").innerHTML = `Mis à jour le ${g.toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long"})}<br>${plural(D.articles.length, "contenu")} sur 26 semaines · <a href="sources.html" id="sources-link">${plural(nSources, "source")}</a> · mise à jour chaque lundi`;
 }
 
 // ---------- KPIs ----------
 function renderKPIs(list) {
-  const week = list.filter(a => a._t >= NOW - 7 * DAY);
+  const week = list.filter(a => a._t >= NOW - 7 * DAY), weekAgent = week.filter(a => a.ag).length;
   const sources = new Set(list.map(a => a.s)).size;
   const hot = D.hot.filter(h => !state.domains.length || state.domains.includes(h.domain)).length;
   const cell = (v, l, s) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${l}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
   $("kpis").innerHTML = cell(fmt(list.length), "contenus sur la période", `${state.weeks} semaines`) +
-    cell(fmt(week.length), "nouveaux cette semaine", "7 derniers jours") +
+    cell(fmt(week.length), "nouveaux cette semaine", "7 derniers jours" + (weekAgent ? ` · dont ${fmt(weekAgent)} par l'agent 🔎` : "")) +
     cell(fmt(sources), "sources actives", "dans la sélection") +
     cell(fmt(hot), "sujets chauds", "repris par plusieurs sources");
+}
+
+// ---------- research agent: latest finds of the selection, proposed sources ----------
+function renderAgent() {
+  $("agent-sec").hidden = !HAS_AGENT;
+  if (!HAS_AGENT) return;
+  const found = selection({ignoreOrigin: true}).filter(a => a.ag).sort((a, b) => b._t - a._t);
+  $("agent-list").innerHTML = found.slice(0, 6).map(a => `<div class="disc">${sw(DOM[a.d].color)}<div>${link(a)}` +
+    `<div class="m">${esc(a.s)} · ${a.est ? "repéré le " : ""}${frDate(a.p)}${a.aq ? ` · recherche « ${esc(a.aq)} »` : ""}</div></div></div>`).join("")
+    || `<div class="empty">Aucune découverte de l'agent pour cette sélection.</div>`;
+  const on = state.origin === "agent", btn = $("agent-all");
+  btn.hidden = !found.length && !on;
+  btn.setAttribute("aria-pressed", on);
+  btn.textContent = on ? "Afficher tous les contenus" : `Voir les ${plural(found.length, "découverte")} dans la liste`;
+  btn.onclick = () => { state.origin = on ? "" : "agent"; changed(); if (!on) scrollToList(); };
+  const cands = CANDS.filter(c => !state.domains.length || state.domains.includes(c.domain));
+  $("agent-cands").innerHTML = cands.length
+    ? `<span><b>${plural(cands.length, "nouvelle source proposée", "nouvelles sources proposées")}</b> : ${cands.slice(0, 3).map(c => esc(c.name)).join(", ")}${cands.length > 3 ? "…" : ""}</span><a href="sources.html#proposees">Voir et valider les sources proposées →</a>`
+    : "";
 }
 
 // ---------- weekly trend (stacked bars by primary domain) ----------
@@ -660,10 +712,11 @@ function renderList(list) {
   $("list").innerHTML = sorted.slice(0, state.shown).map(a => {
     const sc = scores && scores.get(a._i), dom = DOM[a.d];
     const extra = a.ds.filter(d => d !== a.d && DOM[d]).map(d => `<span class="dchip" style="font-weight:400">${sw(DOM[d].color)}${esc(DOM[d].label)}</span>`).join("");
-    return `<article class="art"><div class="top"><span class="dchip">${sw(dom.color)}${esc(dom.label)}</span>${extra}${a.c ? `<span>${esc(a.c)}</span>` : ""}${a.y ? `<span>${TYPE_EMOJI[a.y] || ""} ${esc(a.y)}</span>` : ""}${sc && sc.sem != null ? `<span class="score" title="Similarité sémantique">proximité ${Math.round(sc.sem * 100)} %</span>` : ""}</div>` +
+    return `<article class="art"><div class="top"><span class="dchip">${sw(dom.color)}${esc(dom.label)}</span>${extra}${a.c ? `<span>${esc(a.c)}</span>` : ""}${a.y ? `<span>${TYPE_EMOJI[a.y] || ""} ${esc(a.y)}</span>` : ""}${a.ag ? `<span class="agent" title="Trouvé par l'agent de recherche, hors des sources suivies">🔎 Découvert par l'agent</span>` : ""}${sc && sc.sem != null ? `<span class="score" title="Similarité sémantique">proximité ${Math.round(sc.sem * 100)} %</span>` : ""}</div>` +
       `<h3><a href="${esc(safeUrl(a.u))}" target="_blank" rel="noopener noreferrer">${esc(a.t)}</a></h3>` +
       (a.o ? `<p class="orig" lang="en">Titre original : ${esc(a.o)}</p>` : "") +
       `<div class="src">${esc(a.s)} · ${a.est ? "repéré le " : ""}${new Date(a.p).toLocaleDateString("fr-FR", {day: "numeric", month: "long", year: "numeric"})}${a.e.map(id => SCHOOL[id] ? ` · ${esc(SCHOOL[id].label)}` : "").join("")}</div>` +
+      (a.ag && a.aq ? `<div class="why">Trouvé avec la recherche « ${esc(a.aq)} »</div>` : "") +
       (a.sm ? `<p class="sm">${esc(a.sm)}</p>` : "") + `</article>`;
   }).join("") || `<div class="empty">Aucun contenu pour ces filtres.${state.q ? " Essayez une formulation plus générale ou retirez un sujet." : ""}</div>`;
   $("more").hidden = sorted.length <= state.shown;
@@ -673,7 +726,7 @@ function renderList(list) {
 // ---------- wiring ----------
 function renderAll() {
   const list = selection();
-  renderControls(); renderMeta(); renderKPIs(list); renderTrend(list); renderCloud(list); renderHot(); renderEmerging();
+  renderControls(); renderMeta(); renderKPIs(list); renderAgent(); renderTrend(list); renderCloud(list); renderHot(); renderEmerging();
   renderBench(list); renderSources(list); renderList(list); renderCloudReset();
 }
 function changed() { state.shown = 25; saveState(); renderAll(); }
@@ -692,6 +745,7 @@ $("q").addEventListener("input", e => {
 $("q").addEventListener("keydown", e => { if (e.key === "Escape") { e.target.value = ""; state.q = ""; scores = null; searchSeq++; changed(); } });
 $("q-clear").onclick = () => { state.q = ""; scores = null; searchSeq++; changed(); $("q").focus(); };
 $("type").onchange = e => { state.type = e.target.value; changed(); };
+$("origin").onchange = e => { state.origin = e.target.value; changed(); };
 $("more").onclick = () => { state.shown += 25; renderList(selection()); };
 window.addEventListener("hashchange", () => { readState(); runSearch(); });
 let resizeT; window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => renderTrend(selection()), 150); });

@@ -53,7 +53,7 @@ async def run(args: argparse.Namespace) -> int:
         filters = source_filters(args.sources)
         retry = [a for a in store.load_unclassified(limit=RETRY_LIMIT) if a.url not in {n.url for n in new}]
         for a in retry:
-            a.filter = filters.get(a.source, "")
+            a.filter = "agent" if a.origin == "agent" else filters.get(a.source, "")
         if retry:
             logging.info(f"{len(retry)} earlier item(s) only had the rule fallback: sending them to the LLM again")
         logging.info(f"LLM: {model_name()}")

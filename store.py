@@ -12,8 +12,11 @@ from models import Article
 
 ARTICLE_COLUMNS = [
     "url", "title", "title_fr", "source", "domain", "domains", "published", "published_is_estimated", "description",
-    "lang", "kind", "summary", "category", "content_type", "entities", "classified", "relevant",
+    "lang", "kind", "summary", "category", "content_type", "entities", "classified", "relevant", "origin", "agent_query",
+    "site",
 ]
+# Columns added after the first release: created on older SQLite files (Supabase: the ALTER TABLE lines of schema.sql).
+_ADDED_COLUMNS = {"origin": "TEXT DEFAULT 'source'", "agent_query": "TEXT DEFAULT ''", "site": "TEXT DEFAULT ''"}
 _JSON_COLUMNS = {"domains", "entities"}
 _BOOL_COLUMNS = {"published_is_estimated", "classified", "relevant"}
 _ORDER = {"articles": ["url"], "seen_links": ["source", "url"]}   # unique keys: stable paging
@@ -91,6 +94,7 @@ CREATE TABLE IF NOT EXISTS articles (
     domains TEXT DEFAULT '[]', published TEXT NOT NULL, published_is_estimated INTEGER DEFAULT 0,
     description TEXT DEFAULT '', lang TEXT, kind TEXT DEFAULT 'article', summary TEXT DEFAULT '', category TEXT,
     content_type TEXT, entities TEXT DEFAULT '[]', classified INTEGER DEFAULT 0, relevant INTEGER DEFAULT 1,
+    origin TEXT DEFAULT 'source', agent_query TEXT DEFAULT '', site TEXT DEFAULT '',
     collected_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS seen_links (
     source TEXT NOT NULL, url TEXT NOT NULL, first_seen TEXT NOT NULL, PRIMARY KEY (source, url));
@@ -104,6 +108,11 @@ class SqliteStore(Store):
         self.conn = sqlite3.connect(path)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SQLITE_SCHEMA)
+        existing = {r[1] for r in self.conn.execute("PRAGMA table_info(articles)")}
+        for col, decl in _ADDED_COLUMNS.items():
+            if col not in existing:
+                self.conn.execute(f"ALTER TABLE articles ADD COLUMN {col} {decl}")
+        self.conn.commit()
 
     @staticmethod
     def _to_db(row: dict) -> dict:

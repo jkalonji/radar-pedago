@@ -72,6 +72,25 @@ SOURCES = {
 VARIANTS = ["", " : premiers résultats", " : ce qu'il faut retenir", " — témoignages", " : mode d'emploi", " (dossier)"]
 EMERGING = ["Agents IA en formation : premiers usages en école", "Agents IA : quels effets sur l'évaluation ?",
             "Des agents IA pour accompagner les étudiants en projet", "Agents IA et tutorat : retour d'une expérimentation"]
+# Research agent finds: two sites come back often enough to be proposed as sources, the third does not.
+AGENT = [
+    ("pedagogie", "Pédagogies actives", "Apprentissage par projet : un studio de conception en première année", "Retour d'expérience",
+     "Atelier Pédago (démo)", "https://atelier-pedago.example/", "apprentissage par projet école d'ingénieurs"),
+    ("pedagogie", "Approche par compétences & évaluation", "Grilles critériées : évaluer les compétences en projet", "Outil / ressource",
+     "Atelier Pédago (démo)", "https://atelier-pedago.example/", "évaluation des compétences en projet"),
+    ("pedagogie", "Pédagogies actives", "Classe inversée en amphi : ce que disent les étudiants", "Retour d'expérience",
+     "Atelier Pédago (démo)", "https://atelier-pedago.example/", "classe inversée retours étudiants"),
+    ("innovation_ia", "IA générative en formation", "Generative AI tutors in engineering courses: early evidence", "Étude / recherche",
+     "AI in Teaching Lab (démo)", "https://ai-teaching-lab.example/", "generative AI tutors engineering education"),
+    ("innovation_ia", "Usages étudiants & intégrité", "Students and AI assistants: an academic integrity survey", "Étude / recherche",
+     "AI in Teaching Lab (démo)", "https://ai-teaching-lab.example/", "student AI use academic integrity"),
+    ("design_ux", "UX des dispositifs d'apprentissage", "Concevoir l'expérience apprenant d'un MOOC : méthode en cinq étapes", "Outil / ressource",
+     "Blog UX Formation (démo)", "https://ux-formation.example/", "expérience apprenant conception de cours en ligne"),
+]
+AGENT_FR = {
+    "Generative AI tutors": "Tuteurs d'IA générative dans les cours d'ingénierie : premiers résultats",
+    "Students and AI": "Les étudiants et les assistants d'IA : une enquête sur l'intégrité académique",
+}
 
 
 def generate(n_weeks: int = 12, per_week: int = 26, seed: int = 7) -> list[Article]:
@@ -88,6 +107,12 @@ def generate(n_weeks: int = 12, per_week: int = 26, seed: int = 7) -> list[Artic
     for j, title in enumerate(EMERGING * 2):   # a surge in the last week -> hot topic + emerging term
         pub = now - timedelta(days=rng.uniform(0, 6))
         out.append(_make("innovation_ia", "IA générative en formation", title, "Actualité", pub, rng, f"e{j}"))
+    for j, (domain, cat, title, ctype, source, site, query) in enumerate(AGENT):
+        a = _make(domain, cat, title, ctype, now - timedelta(days=1 + 3 * j), rng, f"agent-{j}")
+        english = next((k for k in AGENT_FR if title.startswith(k)), None)
+        a.title_fr, a.lang = (AGENT_FR[english], "en") if english else (title, "fr")
+        a.source, a.origin, a.site, a.agent_query = source, "agent", site, query
+        out.append(a)
     return out
 
 

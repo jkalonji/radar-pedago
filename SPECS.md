@@ -12,6 +12,8 @@ L'outil collecte chaque jour les sources choisies par l'équipe et produit un **
 
 Le dashboard offre une vue d'ensemble des tendances, avec un nuage de mots, les volumes par sujet, les sujets chauds et les termes émergents.
 
+Chaque semaine, un **agent de recherche** cherche aussi sur le web, hors des sources suivies. Il apporte de nouveaux contenus, signalés comme tels, et propose de nouvelles sources que l'équipe valide.
+
 **Hors périmètre pour ce prototype** :
 - comptes utilisateurs ;
 - récap personnalisé par e-mail ;
@@ -33,6 +35,7 @@ Les utilisateurs accèdent au dashboard par un simple lien.
 | Rythme | **Collecte et enrichissement quotidiens**, comme Veille-IA. **Publication du tableau de bord le lundi**, avant 8 h (heure de Paris). |
 | Personnalisation | 100 % côté navigateur. Les filtres actifs (tags, recherche, période) sont mémorisés dans `localStorage` et reflétés dans l'URL, ce qui permet de partager une vue filtrée. La page s'affiche correctement même si le stockage est bloqué. |
 | Recherche sémantique | Sans serveur (§5), modèle `Xenova/paraphrase-multilingual-MiniLM-L12-v2`. Les embeddings des articles sont calculés dans le pipeline. Le navigateur encode la requête avec **le même modèle** (transformers.js), puis calcule la similarité cosinus localement. |
+| Agent de recherche | `discover.py`, **une fois par semaine** avant la publication, sur **les 6 domaines**. Le LLM écrit 4 requêtes par domaine (2 en **français**, 2 en **anglais**), sur des catégories qui tournent chaque semaine et sur les sujets chauds. Moteurs : **Tavily** et **Google News**. Les résultats sont enrichis comme les autres contenus (affichage **toujours en français**), avec le filtre de pertinence `agent`, et ne sont affichés qu'après vérification par le LLM. Champs `origin = 'agent'`, `agent_query`, `site`. Le LLM n'écrit jamais d'URL. Dans le dashboard : badge « 🔎 Découvert par l'agent », filtre d'origine, section « Découvertes de l'agent ». Un site hors veille qui fournit au moins 2 contenus pertinents sur 26 semaines devient une **source proposée** (`sources.html`), avec une issue GitHub pré-remplie : l'équipe valide avant tout ajout à `sources.json`. |
 
 ## 3. Domaines et taxonomies (à valider avec l'équipe, modifiables dans `models.py`)
 
@@ -109,7 +112,7 @@ Contraintes : responsive (lisible sur téléphone), thème clair et sombre autom
 
 | Fichier | Déclencheur | Rôle |
 |---|---|---|
-| `daily.yml` | tous les jours à 05:30 UTC + manuel | collecte et enrichissement ; le lundi (ou sur demande), export et déploiement du dashboard |
+| `daily.yml` | tous les jours à 05:30 UTC + manuel | collecte et enrichissement ; le lundi (ou sur demande), agent de recherche, puis export et déploiement du dashboard |
 | `dashboard.yml` | manuel | reconstruit et publie le dashboard sans collecter |
 | `sources.yml` | le 1er du mois + manuel | diagnostic de chaque source (tableau dans le résumé du job) |
 | `check.yml` | manuel | vérifie les secrets et les services (Supabase, Groq) |
@@ -117,7 +120,7 @@ Contraintes : responsive (lisible sur téléphone), thème clair et sombre autom
 
 Le cron `30 5 * * *` (UTC) tombe à 6 h 30 l'hiver et 7 h 30 l'été à Paris : le tableau de bord est en ligne avant 8 h toute l'année. Le jour de publication est déterminé à l'heure de Paris.
 
-Secrets : `SUPABASE_URL`, `SUPABASE_KEY` (service_role), `GROQ_API_KEY`. Variables : `GROQ_MODEL`, puis plus tard `LLM_BASE_URL` / `LLM_MODEL`.
+Secrets : `SUPABASE_URL`, `SUPABASE_KEY` (service_role), `GROQ_API_KEY`, `TAVILY_API_KEY` (agent de recherche). Variables : `GROQ_MODEL`, puis plus tard `LLM_BASE_URL` / `LLM_MODEL`.
 
 ## 8. Structure
 
@@ -129,6 +132,7 @@ embeddings.py      encodage + export binaire                store.py        Supa
 entities.py        écoles, alias, filtre de pertinence      models.py       taxonomies, dataclass Article
 text.py            normalisation, langue, mots              demo_data.py    données fictives pour l'aperçu
 dashboard.py       export site/ (dashboard_template.html)   check_setup.py  diagnostic
+discover.py        agent de recherche hebdomadaire (Tavily + Google News), sources proposées
 sources.json  entities.json  glossary.json  schema.sql
 ```
 
@@ -153,3 +157,4 @@ Suites possibles : récap par e-mail ou Teams, favoris partagés, passage sur l'
 - [ ] Validation des taxonomies (§3), des types de contenu et des sources suggérées.
 - [ ] Premier passage du workflow « Check sources » : certaines pages sans flux peuvent demander un `link_pattern`.
 - [ ] Nom définitif du repo et du produit.
+- [ ] Agent de recherche : relire les premières requêtes et sources proposées (résumé du job « Research agent »), puis ajuster la consigne de pertinence `agent` (`classify.py`) et le seuil de proposition (`CANDIDATE_MIN`, `dashboard.py`).

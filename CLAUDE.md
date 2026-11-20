@@ -23,5 +23,11 @@ Veille de l'ingénierie pédagogique (même socle que Luxury-monitoring, modèle
 - Le filtre de source (`filter`) n'est pas stocké : `main.source_filters` le retrouve depuis `sources.json` pour les
   contenus renvoyés au LLM (ceux qui n'avaient eu que le repli par règles, `classified = false`).
 - `Store` : Supabase si `SUPABASE_URL`/`SUPABASE_KEY`, sinon SQLite (`LOCAL_DB`, défaut `data/local.db`).
+- Nouvelle colonne = l'ajouter à `ARTICLE_COLUMNS`, à `_ADDED_COLUMNS` (migration SQLite) et à `schema.sql`, avec un
+  `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (projets Supabase existants : la collecte échoue tant qu'il n'est pas rejoué).
+- Agent de recherche (`discover.py`) : contenus `origin = 'agent'`, filtre `agent` (non stocké, retrouvé par
+  `main.py` d'après `origin`). Sans vérification LLM, `apply_fallback` les rend non pertinents (jamais affichés).
+  Le LLM n'écrit que des requêtes, jamais d'URL. Les sources proposées sont calculées à l'export
+  (`dashboard.candidate_sources`, groupées par `discover.site_key`), jamais ajoutées seules à `sources.json`.
 - `reasoning_effort` n'est envoyé qu'aux modèles qui le supportent (`llm.llm_kwargs`).
 - Ne jamais mettre de clé dans le dépôt : `.env` est ignoré, les secrets passent par GitHub Actions.

@@ -129,7 +129,10 @@ class Article:
     entities: list[str] = field(default_factory=list)  # school ids from entities.json
     classified: bool = False            # False until the LLM (or the rule fallback) has run
     published_is_estimated: bool = False
-    filter: str = ""                    # source filter (e.g. "superieur") — not persisted
+    origin: str = "source"              # "source" (sources.json) | "agent" (found by the research agent, discover.py)
+    agent_query: str = ""               # search query that found an agent item (shown as "why this content")
+    site: str = ""                      # publisher site root of an agent item (proposed sources are grouped by it)
+    filter: str = ""                    # source filter (e.g. "superieur", "agent") — not persisted
     relevant: bool = True               # set by the classifier for filtered sources — not persisted
 
     @property

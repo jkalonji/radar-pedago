@@ -100,12 +100,15 @@ def parse_feed_date(entry) -> datetime | None:
     return None
 
 
-def gnews_url(query: str, lookback_hours: int | None = None) -> str:
-    """Google News RSS search URL (French edition). `when:Nd` is rewritten to honour the lookback window."""
+GNEWS_EDITIONS = {"fr": "hl=fr&gl=FR&ceid=FR:fr", "en": "hl=en-US&gl=US&ceid=US:en"}
+
+
+def gnews_url(query: str, lookback_hours: int | None = None, lang: str = "fr") -> str:
+    """Google News RSS search URL (French edition by default). `when:Nd` is rewritten to honour the lookback window."""
     if lookback_hours:
         days = max(1, -(-lookback_hours // 24))
         query = re.sub(r"when:\d+[dh]", f"when:{days}d", query) if "when:" in query else f"{query} when:{days}d"
-    return f"https://news.google.com/rss/search?q={up.quote(query)}&hl=fr&gl=FR&ceid=FR:fr"
+    return f"https://news.google.com/rss/search?q={up.quote(query)}&{GNEWS_EDITIONS.get(lang, GNEWS_EDITIONS['fr'])}"
 
 
 def looks_like_feed(body: str) -> bool:

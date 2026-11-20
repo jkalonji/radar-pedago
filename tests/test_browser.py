@@ -149,6 +149,28 @@ def test_cloud_click_and_hot_topic_filter(site, browser):
     ctx.close()
 
 
+def test_agent_finds_are_marked_and_filterable(site, browser):
+    errors = []
+    ctx, page = new_page(browser, errors)
+    page.goto(site + "#w=26")
+    total = count(page)
+    assert not page.is_hidden("#agent-sec") and page.locator("#agent-list .disc").count() == 6
+    assert "nouvelles sources proposées" in page.inner_text("#agent-cands")
+    assert "sources.html#proposees" in page.get_attribute("#agent-cands a", "href")
+    page.click("#agent-all")   # only the agent finds, each with its badge and the query that found it
+    assert count(page) == 6 and page.get_attribute("#agent-all", "aria-pressed") == "true"
+    assert page.locator("#list .agent").count() == 6 and page.locator("#list .why").count() == 6
+    assert "o=agent" in page.url and "découvertes de l'agent" in page.inner_text("#active")
+    page.select_option("#origin", "sources")
+    assert count(page) == total - 6 and page.locator("#list .agent").count() == 0
+    page.click('#tags .tag[data-d="innovation_ia"]')   # the section follows the tags
+    assert 0 < page.locator("#agent-list .disc").count() < 6
+    page.goto(site.replace("index.html", "sources.html"))
+    assert page.locator("#proposees .cand").count() == 2
+    assert errors == []
+    ctx.close()
+
+
 def test_mobile_has_no_horizontal_scroll(site, browser):
     ctx = browser.new_context(viewport={"width": 390, "height": 844})
     page = ctx.new_page()

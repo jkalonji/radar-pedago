@@ -11,7 +11,9 @@ GitHub Actions (cron 05:30 UTC, tous les jours)
               ├─ enrichissement LLM (Groq, client compatible OpenAI) : catégorie, type, titre FR, résumé FR, pertinence
               ├─ repli par règles si pas de clé ou erreur (retenté par le LLM aux exécutions suivantes)
               └─ stockage (Supabase, ou SQLite en local)
-  └─ le lundi : dashboard.py --export ──► site/index.html + site/embeddings.bin ──► GitHub Pages
+  └─ le lundi : discover.py ── agent de recherche : requêtes FR + EN par sujet ─► Tavily + Google News
+              │                └─ nouveaux contenus vérifiés par le LLM, sites hors veille ─► sources proposées
+              └─ dashboard.py --export ──► site/index.html + site/embeddings.bin + site/sources.html ──► GitHub Pages
 ```
 
 ## Ce que contient le tableau de bord
@@ -21,14 +23,16 @@ GitHub Actions (cron 05:30 UTC, tous les jours)
 | **Barre de recherche** | Recherche par mots-clés, développée avec le glossaire des sigles (APC → approche par compétences, AFEST, EIAH…), puis **recherche sémantique** : « évaluation par compétences » trouve aussi « APC », et une requête en français trouve des articles en anglais. |
 | **Tags** | Les 6 sujets (sélection multiple) : les tags choisis sont entourés en vert, les autres grisés. Quand un seul sujet est choisi, ses catégories apparaissent en sous-tags. S'y ajoutent un filtre par type de contenu et la période (4, 12 ou 26 semaines). |
 | **Mémorisation** | Les filtres et la recherche sont gardés dans le navigateur de chacun et repris dans l'URL : copier le lien partage la vue filtrée. |
-| **Chiffres clés** | Contenus sur la période, nouveaux de la semaine, sources actives, sujets chauds. |
+| **Origine** | Filtre « Sources suivies » / « Découvertes de l'agent » (affiché dès que l'agent a trouvé des contenus). |
+| **Chiffres clés** | Contenus sur la période, nouveaux de la semaine (dont ceux de l'agent), sources actives, sujets chauds. |
+| **Découvertes de l'agent** | Derniers contenus trouvés par l'agent de recherche dans la sélection, avec la requête qui les a trouvés, et les nouvelles sources proposées. Dans la liste, ces contenus portent le badge « 🔎 Découvert par l'agent ». |
 | **Tendances par sujet** | Barres empilées : contenus par semaine et par sujet, avec infobulle au survol. |
 | **Nuage de mots** | Mots les plus fréquents des titres de la sélection. Un clic lance la recherche sur ce mot ; « Revenir au nuage de mots » rétablit le nuage complet. |
 | **Sujets chauds de la semaine** | Groupes de titres partagés par au moins 2 sources sur 7 jours, calculés sujet par sujet et nommés par le LLM. Un clic sur « N contenus · N sources » déplie le détail, source par source. |
 | **Termes émergents** | Termes au moins 2 fois plus fréquents cette semaine que sur les 4 précédentes. Section active après 4 semaines d'historique. |
 | **Benchmark des écoles** | Affiché quand le tag Benchmark est sélectionné : carte de chaleur écoles × catégories et dernières actualités. Les écoles sont définies dans `entities.json`. |
 | **Qui en parle ?** | Sources les plus actives sur la sélection. Un clic filtre la liste. |
-| **Sources de la veille** | Page séparée (`sources.html`, lien dans l'en-tête et le pied de page) : chaque source ayant fourni au moins un contenu sur 26 semaines, une seule fois, groupée par sujet, avec un lien vers son site et son nombre de contenus. Le lien est déduit de `sources.json` ; ajouter `"site"` pour le préciser (revues Crossref). |
+| **Sources de la veille** | Page séparée (`sources.html`, lien dans l'en-tête et le pied de page) : chaque source ayant fourni au moins un contenu sur 26 semaines, une seule fois, groupée par sujet, avec un lien vers son site et son nombre de contenus. Le lien est déduit de `sources.json` ; ajouter `"site"` pour le préciser (revues Crossref). En bas de page, les **sources proposées par l'agent** (voir plus bas). |
 | **Contenus** | Titre en français (titre original affiché s'il a été traduit), source, date, sujet, catégorie, type et résumé. Tri par date ou par pertinence pendant une recherche. |
 
 Tous les graphiques suivent les filtres actifs. La page est autonome : aucune donnée ne part vers un serveur, et la recherche sémantique s'exécute dans le navigateur.
@@ -64,6 +68,20 @@ Points à connaître :
 
 Ajouter une source, une école ou un sigle se fait en éditant `sources.json`, `entities.json` ou `glossary.json`, sans toucher au code.
 
+## Agent de recherche
+
+Chaque lundi, avant la publication, `discover.py` cherche sur le web, au-delà des sources suivies, de **nouveaux contenus** et de **nouvelles sources**.
+
+1. **Requêtes** : pour chacun des 6 sujets, le LLM écrit 4 requêtes, 2 en français et 2 en anglais. Les catégories visées tournent d'une semaine à l'autre, et la moitié des requêtes creuse les sujets chauds de la semaine.
+2. **Recherche** : chaque requête part vers **Tavily** (résultats de la semaine) et **Google News** (édition française ou anglaise selon la langue). Les réseaux sociaux et les agrégateurs sont écartés.
+3. **Tri** : les contenus déjà en base (même lien ou même titre) sont retirés. Les autres passent par l'enrichissement habituel, avec une consigne de pertinence plus stricte (pages commerciales, offres d'emploi, catalogues et hors-sujet écartés). Ils reçoivent un titre et un résumé **en français**, comme le reste.
+4. **Affichage** : un contenu de l'agent n'apparaît qu'une fois vérifié par le LLM. Il porte le badge « 🔎 Découvert par l'agent » et la requête qui l'a trouvé.
+5. **Sources proposées** : un site hors de `sources.json` qui a fourni au moins 2 contenus pertinents sur 26 semaines est proposé en bas de `sources.html`, avec des exemples, la ligne à copier dans `sources.json` (`"type": "auto"`, `"suggested": true`) et un bouton qui ouvre une **issue GitHub pré-remplie**. Rien n'est ajouté automatiquement : l'équipe valide, puis lance « Check sources ».
+
+Sécurité : le LLM n'écrit jamais d'adresse. Il écrit des requêtes et juge les résultats renvoyés par les moteurs. Le texte des pages est traité comme une donnée, jamais comme une consigne.
+
+Coût : 24 requêtes par semaine, soit environ 100 crédits Tavily par mois. L'offre gratuite de Tavily (de l'ordre de 1 000 crédits par mois au moment de l'écriture) suffit. Sans `TAVILY_API_KEY`, l'agent ne cherche que dans Google News. Sans clé LLM, il ne tourne pas.
+
 ## Mise en route
 
 ### 1. Comptes et secrets
@@ -72,6 +90,7 @@ Ajouter une source, une école ou un sigle se fait en éditant `sources.json`, `
 |---|---|---|
 | **Supabase** (gratuit) | Créer un projet, puis exécuter [`schema.sql`](schema.sql) dans *SQL Editor* | `SUPABASE_URL`, `SUPABASE_KEY` (clé **service_role** ou *secret*, jamais dans le navigateur) |
 | **Groq** | Créer une clé API | `GROQ_API_KEY` (+ variable `GROQ_MODEL`, défaut `openai/gpt-oss-120b`) |
+| **Tavily** (agent de recherche) | Créer une clé API sur tavily.com | `TAVILY_API_KEY` (sans elle : Google News seul) |
 | **Crossref** (optionnel) | Rien à créer | variable `CROSSREF_MAILTO` : une adresse de contact, recommandée par Crossref |
 
 Où les saisir : *Settings → Secrets and variables → Actions*. Pour le tableau de bord : *Settings → Pages → Source : GitHub Actions*.
@@ -80,7 +99,7 @@ Sans Supabase, rien n'est conservé entre deux exécutions (le runner GitHub est
 
 ### 2. Premier lancement
 
-1. *Actions → Radar Pédago - Check setup → Run workflow* : vérifie Supabase et la clé LLM, sans afficher de secret.
+1. *Actions → Radar Pédago - Check setup → Run workflow* : vérifie Supabase, la clé LLM et la clé Tavily, sans afficher de secret. **Projet Supabase créé avant l'agent de recherche** : réexécuter `schema.sql` (il n'ajoute que les colonnes manquantes `origin`, `agent_query`, `site`) ; sinon la collecte échoue.
 2. *Actions → Radar Pédago - Check sources → Run workflow* : état de chaque source.
 3. *Actions → Radar Pédago - Collecte quotidienne → Run workflow* avec `backfill_days = 60` et `publish` coché. Cela charge deux mois d'historique et publie le tableau de bord.
 4. Le tableau de bord est en ligne à `https://<utilisateur>.github.io/<repo>/`. Ensuite, la collecte tourne chaque jour et la publication chaque lundi avant 8 h.
@@ -93,6 +112,8 @@ Le plan gratuit de Groq limite le volume par jour. Le pipeline envoie au plus 30
 pip install -r requirements-dev.txt
 cp .env.example .env                       # tout est optionnel en local
 python main.py --backfill-days 30          # collecte (data/local.db sans Supabase)
+python discover.py --dry-run               # agent de recherche : requêtes et résultats, sans rien stocker
+python discover.py                         # agent de recherche (clé LLM requise, TAVILY_API_KEY conseillée)
 python dashboard.py --export               # site/index.html + site/embeddings.bin
 python check_sources.py --only "RIPES"     # diagnostic d'une source
 python -m pytest                           # tests hors réseau (+ tests navigateur si Playwright est installé)
@@ -120,6 +141,7 @@ Pour ouvrir le tableau de bord en local avec la recherche sémantique, servez le
 - **Google News** : il renvoie des liens de redirection, et l'éditeur d'origine est indiqué dans la source.
 - **Résumés et traductions** : générés par LLM à partir des titres et extraits publics, jamais du texte intégral. À vérifier avant de citer.
 - **Termes émergents** : ils demandent 4 semaines d'historique. La section l'indique en attendant.
+- **Agent de recherche** : il juge les contenus sur leur titre et un court extrait. Un contenu sans date connue est daté du jour où il est trouvé (« repéré le »). Un même article peut revenir sous deux adresses différentes (lien Google News et lien direct) si son titre a changé.
 
 ## Structure
 
@@ -132,5 +154,6 @@ store.py           Supabase / SQLite                  entities.py        écoles
 models.py          sujets, catégories, types         text.py            normalisation, langue, mots
 check_setup.py     diagnostic des secrets             check_sources.py   diagnostic des sources
 demo_data.py       données fictives pour l'aperçu     report.py          tableau d'état des sources
+discover.py        agent de recherche (Tavily, Google News) : nouveaux contenus et sources proposées
 sources.json  entities.json  glossary.json  schema.sql
 ```

@@ -18,9 +18,16 @@ CREATE TABLE IF NOT EXISTS articles (
     content_type           TEXT,
     entities               JSONB NOT NULL DEFAULT '[]',       -- écoles de entities.json
     classified             BOOLEAN NOT NULL DEFAULT FALSE,    -- faux tant que le LLM n'est pas passé (repli par règles)
-    relevant               BOOLEAN NOT NULL DEFAULT TRUE,     -- faux = écarté par le filtre 'superieur' (gardé pour ne pas le retraiter)
+    relevant               BOOLEAN NOT NULL DEFAULT TRUE,     -- faux = écarté par le filtre 'superieur' ou 'agent' (gardé pour ne pas le retraiter)
+    origin                 TEXT NOT NULL DEFAULT 'source',    -- 'source' (sources.json) | 'agent' (agent de recherche, discover.py)
+    agent_query            TEXT DEFAULT '',                   -- requête de l'agent qui a trouvé le contenu
+    site                   TEXT DEFAULT '',                   -- site de l'éditeur (contenus de l'agent : sources proposées)
     collected_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Projets créés avant l'agent de recherche : ajoute les colonnes manquantes (sans effet si elles existent déjà).
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS origin      TEXT NOT NULL DEFAULT 'source';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS agent_query TEXT DEFAULT '';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS site        TEXT DEFAULT '';
 CREATE INDEX IF NOT EXISTS articles_published_idx ON articles (published DESC);
 CREATE INDEX IF NOT EXISTS articles_classified_idx ON articles (classified) WHERE classified = FALSE;
 

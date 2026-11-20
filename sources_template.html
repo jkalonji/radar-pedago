@@ -54,6 +54,21 @@ li .ext{color:var(--muted);font-size:12px;margin-left:3px}
 li .c{color:var(--muted);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .empty{color:var(--muted);font-size:13.5px}
 footer{color:var(--muted);font-size:12.5px;padding:8px 0 40px}
+/* proposed sources (research agent) */
+.proposed{margin-top:26px}
+.intro:empty{display:none}
+.proposed>h2{font-size:18px;margin:0 0 4px}
+.cand h3{margin:0 0 4px;font-size:15px}
+.cand h3 a{text-decoration:none}.cand h3 a:hover{text-decoration:underline}
+.cand .ext{color:var(--muted);font-size:12px;margin-left:3px}
+.cand .m{margin:0 0 6px;font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cand ul.ex{list-style:disc;padding-left:18px;margin:0 0 6px}
+.cand ul.ex li{display:list-item;border:0;padding:2px 0;font-size:13.5px}
+.actions{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:8px}
+.btn{display:inline-block;border:1px solid var(--brand);background:var(--brand);color:var(--brand-ink);border-radius:8px;padding:5px 12px;font-size:13px;text-decoration:none}
+.btn:hover{filter:brightness(1.1)}
+details summary{cursor:pointer;font-size:12.5px;color:var(--ink2)}
+pre{margin:6px 0 0;padding:8px 10px;background:var(--hover);border:1px solid var(--border);border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 @media (max-width:900px){.grid{columns:1}}
 @media (forced-colors:active){.sw{forced-color-adjust:none}}
 </style>
@@ -68,6 +83,13 @@ footer{color:var(--muted);font-size:12.5px;padding:8px 0 40px}
   <div class="grid">
 __SECTIONS__
   </div>
+  <section class="proposed" id="proposees" aria-labelledby="proposees-h">
+    <h2 id="proposees-h">🔎 Sources proposées par l'agent<span class="n">__CAND_COUNT__</span></h2>
+    <p class="intro">__CAND_INTRO__</p>
+    <div class="grid">
+__CANDIDATES__
+    </div>
+  </section>
 </main>
 <footer class="wrap">__FOOTER__</footer>
 </body>

@@ -74,7 +74,8 @@ def test_export_writes_page_and_aligned_vectors(tmp_path):
     store = SqliteStore(str(tmp_path / "d.db"))
     store.save_articles(generate(n_weeks=6, per_week=10))
     out = tmp_path / "site" / "index.html"
-    dashboard.export(str(out), store=store, index=EntityIndex.load(), client=None, encoder=FakeEncoder())
+    dashboard.export(str(out), store=store, index=EntityIndex.load(), client=None, encoder=FakeEncoder(),
+                     repo="equipe/radar-pedago")
     html = out.read_text(encoding="utf-8")
     data = json.loads(html.split('<script id="data" type="application/json">')[1].split("</script>")[0])
     assert data["demo"] is True and len(data["domains"]) == 6 and data["glossary"]
@@ -83,14 +84,43 @@ def test_export_writes_page_and_aligned_vectors(tmp_path):
     a = data["articles"][0]
     assert set(a) >= {"t", "o", "u", "s", "d", "ds", "p", "c", "y", "sm", "e"}
     # no encoder -> no stale vectors left behind
-    dashboard.export(str(out), store=store, index=EntityIndex.load(), client=None, with_embeddings=False)
+    dashboard.export(str(out), store=store, index=EntityIndex.load(), client=None, with_embeddings=False,
+                     repo="equipe/radar-pedago")
     assert not (tmp_path / "site" / "embeddings.bin").exists()
     assert "</script>" not in html.split('<script id="data" type="application/json">')[1].split("</script>")[0]
-    # the sources page lists each source once, with its count
+    # the sources page lists each followed source once, with its count; agent finds are not followed sources
     sources = (tmp_path / "site" / "sources.html").read_text(encoding="utf-8")
-    names = {a["s"] for a in data["articles"]}
+    names = {a["s"] for a in data["articles"] if not a.get("ag")}
     assert all(sources.count(f">{escape(n)}<") == 1 for n in names)
-    assert f"{len(names)} sources" in sources and "__SECTIONS__" not in sources
+    assert f"{len(names)} sources" in sources and "__" not in sources
+    # agent finds carry their query; sites with 2+ finds are proposed, each with a pre-filled issue
+    agent = [a for a in data["articles"] if a.get("ag")]
+    assert agent and all(a["aq"] for a in agent) and "ag" not in data["articles"][-1]
+    assert [c["name"] for c in data["candidate_sources"]] == ["Atelier Pédago (démo)", "AI in Teaching Lab (démo)"]
+    assert sources.count('class="card cand"') == 2 and "Blog UX Formation" not in sources
+    assert "https://github.com/equipe/radar-pedago/issues/new?" in sources and "&quot;type&quot;: &quot;auto&quot;" in sources
+
+
+def test_candidate_sources_skip_followed_sites_and_single_finds():
+    def r(url, site, source="Site", domain="pedagogie", relevant=True, days=1):
+        return {"url": url, "title": f"Titre {url}", "title_fr": f"Titre FR {url}", "source": source, "domain": domain,
+                "published": (NOW - timedelta(days=days)).isoformat(), "origin": "agent", "agent_query": "q",
+                "site": site, "relevant": relevant}
+    configs = {"Thot": {"name": "Thot", "domain": "pedagogie", "type": "auto", "url": "https://cursus.edu/fr"},
+               "RIPES": {"name": "RIPES", "domain": "recherche", "type": "rss",
+                         "url": "https://journals.openedition.org/ripes/backend"}}
+    rows = [r("https://cursus.edu/a", "https://cursus.edu/"), r("https://cursus.edu/b", "https://www.cursus.edu/"),
+            r("https://journals.openedition.org/ripes/1", "https://journals.openedition.org/ripes/"),
+            r("https://journals.openedition.org/ripes/2", "https://journals.openedition.org/ripes/"),
+            r("https://journals.openedition.org/dms/1", "https://journals.openedition.org/dms/", "DMS", "design_ux"),
+            r("https://journals.openedition.org/dms/2", "https://journals.openedition.org/dms/", "DMS", "design_ux", days=3),
+            r("https://seul.fr/1", "https://seul.fr/"),
+            r("https://rejete.fr/1", "https://rejete.fr/", relevant=False), r("https://rejete.fr/2", "https://rejete.fr/")]
+    c = dashboard.candidate_sources(rows, configs)
+    assert [(x["name"], x["domain"], x["count"]) for x in c] == [("DMS", "design_ux", 2)]
+    assert c[0]["url"] == "https://journals.openedition.org/dms/" and c[0]["examples"][0]["t"].startswith("Titre FR")
+    assert dashboard.proposal_issue_url(c[0], "pas un dépôt") == ""
+    assert "Source+propos%C3%A9e+%3A+DMS" in dashboard.proposal_issue_url(c[0], "a/b")
 
 
 def test_source_directory_dedupes_groups_and_links():

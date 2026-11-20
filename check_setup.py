@@ -1,4 +1,4 @@
-"""Radar Pédago - setup check: are the secrets present and do Supabase and the LLM endpoint accept them?
+"""Radar Pédago - setup check: are the secrets present and do Supabase, the LLM endpoint and Tavily accept them?
 
 Run it from GitHub (Actions -> "Radar Pédago - Check setup") or locally with a .env. It never prints a secret:
 only OK/KO statuses, the Supabase project id from SUPABASE_URL and the LLM endpoint host.
@@ -13,6 +13,8 @@ import urllib.parse as up
 import requests
 
 TABLES = ("articles", "seen_links")
+AGENT_COLUMNS = ("origin", "agent_query", "site")
+TAVILY_URL = "https://api.tavily.com/search"
 OK, KO, WARN = "OK ", "KO ", "?? "
 TIMEOUT = 20
 
@@ -66,6 +68,17 @@ def check_supabase(env=os.environ) -> list[tuple[str, str]]:
             out.append((KO, f"table {table}: key rejected (HTTP {r.status_code})"))
         else:
             out.append((KO, f"table {table}: HTTP {r.status_code}"))
+    # Columns added with the research agent: an older project needs schema.sql run again (it only adds what is missing).
+    try:
+        r = requests.get(f"{base}/rest/v1/articles?select={','.join(AGENT_COLUMNS)}&limit=1", headers=headers,
+                         timeout=TIMEOUT)
+        if r.status_code == 200:
+            out.append((OK, "table articles: research agent columns present"))
+        elif r.status_code == 400:
+            out.append((KO, "table articles: research agent columns MISSING -> run schema.sql again (safe: it only "
+                            "adds what is missing)"))
+    except requests.RequestException:
+        pass
     return out
 
 
@@ -91,6 +104,24 @@ def check_llm(env=os.environ) -> list[tuple[str, str]]:
                                                                "is NOT available: fix the LLM_MODEL / GROQ_MODEL variable"))]
 
 
+def check_tavily(env=os.environ) -> list[tuple[str, str]]:
+    key = (env.get("TAVILY_API_KEY") or "").strip()
+    if not key:
+        return [(WARN, "no TAVILY_API_KEY: the research agent only searches Google News")]
+    try:   # one real search: costs 1 Tavily credit
+        r = requests.post(TAVILY_URL, json={"query": "pédagogie active", "max_results": 1},
+                          headers={"Authorization": f"Bearer {key}"}, timeout=TIMEOUT)
+    except requests.RequestException as e:
+        return [(KO, f"Tavily unreachable ({type(e).__name__})")]
+    if r.status_code == 200:
+        return [(OK, "Tavily: key accepted (this check used 1 credit)")]
+    if r.status_code in (401, 403):
+        return [(KO, f"Tavily: key rejected (HTTP {r.status_code})")]
+    if r.status_code in (429, 432, 433):
+        return [(KO, f"Tavily: quota or rate limit reached (HTTP {r.status_code})")]
+    return [(KO, f"Tavily: HTTP {r.status_code}")]
+
+
 def main() -> int:
     try:
         from dotenv import load_dotenv
@@ -98,7 +129,7 @@ def main() -> int:
     except ImportError:
         pass
     failed = False
-    for title, check in (("Supabase", check_supabase), ("LLM", check_llm)):
+    for title, check in (("Supabase", check_supabase), ("LLM", check_llm), ("Tavily", check_tavily)):
         print(f"\n== {title}")
         for status, msg in check():
             print(f"  {status} {msg}")
