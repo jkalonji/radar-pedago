@@ -82,7 +82,7 @@ Chaque action est enregistrée dans la table Supabase `source_changes`. Cette ta
 - `sources.json` reste la liste de base, versionnée. Une source désactivée dans le fichier (LinkedIn) ne peut pas être réactivée depuis la page. Un ajout ne peut pas non plus remplacer une source du fichier qui porte le même nom.
 - **Accès** : pour l'instant, **n'importe quel visiteur de la page** peut ajouter ou retirer une source. Le champ « Votre nom » est facultatif et purement déclaratif. Comme rien n'est jamais effacé du journal, une erreur se corrige avec « Réactiver ».
 - Pour rendre durable une source ajoutée depuis la page, copiez-la dans `sources.json`, où elle bénéficie de tous les réglages (type, `filter`, `fallback`).
-- Activation : variable GitHub `SUPABASE_ANON_KEY` (voir « Mise en route »). Sans elle, la page affiche la liste mais renvoie vers `sources.json`, et les sources proposées gardent leur issue GitHub pré-remplie.
+- Activation : variable (ou secret) GitHub `SUPABASE_ANON_KEY` (voir « Mise en route »). Sans elle, la page affiche la liste mais renvoie vers `sources.json`, et les sources proposées gardent leur issue GitHub pré-remplie.
 
 ## Agent de recherche
 
@@ -104,7 +104,7 @@ Coût : 24 requêtes par semaine, soit environ 100 crédits Tavily par mois. L'o
 
 | Service | À faire | Secret / variable GitHub |
 |---|---|---|
-| **Supabase** (gratuit) | Créer un projet, puis exécuter [`schema.sql`](schema.sql) dans *SQL Editor* | `SUPABASE_URL`, `SUPABASE_KEY` (clé **service_role** ou *secret*, jamais dans le navigateur) ; variable `SUPABASE_ANON_KEY` = clé publique **anon** ou *publishable* (*Project Settings → API Keys*), écrite dans `sources.html` pour ajouter et retirer des sources. Les droits de cette clé sont fixés par `schema.sql` : elle lit `source_changes` et y ajoute des lignes, sans aucun autre accès. |
+| **Supabase** (gratuit) | Créer un projet, puis exécuter [`schema.sql`](schema.sql) dans *SQL Editor* | `SUPABASE_URL`, `SUPABASE_KEY` (clé **service_role** ou *secret*, jamais dans le navigateur) ; variable (ou secret) `SUPABASE_ANON_KEY` = clé publique **anon** ou *publishable* (*Project Settings → API Keys*), écrite dans `sources.html` pour ajouter et retirer des sources. Les droits de cette clé sont fixés par `schema.sql` : elle lit `source_changes` et y ajoute des lignes, sans aucun autre accès. |
 | **Groq** | Créer une clé API | `GROQ_API_KEY` (+ variable `GROQ_MODEL`, défaut `openai/gpt-oss-120b`) |
 | **Tavily** (agent de recherche) | Créer une clé API sur tavily.com | `TAVILY_API_KEY` (sans elle : Google News seul) |
 | **Crossref** (optionnel) | Rien à créer | variable `CROSSREF_MAILTO` : une adresse de contact, recommandée par Crossref |
