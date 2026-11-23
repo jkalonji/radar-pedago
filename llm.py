@@ -66,6 +66,8 @@ async def chat_json(client, system: str, user: str, *, model: str | None = None,
                     attempts: int = 3) -> dict:
     """One chat completion answered as a JSON object. Waits and retries on rate limits."""
     model = model or model_name()
+    if "json" not in (system + user).lower():   # OpenAI-compatible APIs (Groq) refuse json_object mode otherwise
+        system += "\nRéponds en JSON."
     last: Exception | None = None
     for attempt in range(attempts):
         try:
