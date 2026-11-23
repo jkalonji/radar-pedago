@@ -23,6 +23,7 @@ from embeddings import DIM, MODEL_ID, build_embeddings
 from entities import EntityIndex
 from llm import make_client
 from models import CONTENT_TYPES, DOMAINS
+from registry import all_sources, load_base
 from store import Store, get_store
 from text import STOPWORDS, normalize
 from topics import emerging_terms, name_clusters, weekly_hot_topics
@@ -97,7 +98,7 @@ async def build_payload(store: Store, index: EntityIndex, days: int = WINDOW_DAY
         "hot": [{"label": c["label"], "domain": c["domain"], "urls": [a["url"] for a in c["articles"]],
                  "count": c["article_count"], "sources": c["source_count"]} for c in hot],
         "emerging": emerging,
-        "candidate_sources": candidate_sources(rows, load_source_configs(index=index)),
+        "candidate_sources": candidate_sources(rows, load_source_configs(index=index, store=store)),
         "schools": [{"id": s.id, "label": s.label, "group": s.group} for s in index.schools],
         "alias_words": sorted(index.alias_words()),
         "stopwords": sorted(STOPWORDS),
@@ -116,11 +117,12 @@ def load_glossary(path: str = "glossary.json") -> list[list[str]]:
         return []
 
 
-def load_source_configs(path: str = "sources.json", index: EntityIndex | None = None) -> dict[str, dict]:
-    """Every configured source by name, disabled ones included: they may still own contents in the window."""
+def load_source_configs(path: str = "sources.json", index: EntityIndex | None = None, store: Store | None = None
+                        ) -> dict[str, dict]:
+    """Every configured source by name (sources.json + page changes), disabled or removed ones included: they may
+    still own contents in the window."""
     try:
-        with open(path, encoding="utf-8") as f:
-            sources = [s for s in json.load(f)["sources"] if "name" in s]
+        sources = all_sources(path, store)
     except FileNotFoundError:
         sources = []
     sources += index.school_sources() if index else []
@@ -165,6 +167,47 @@ def source_directory(articles: list[dict], configs: dict[str, dict]) -> list[dic
                                       normalize(s["name"])))
 
 
+def public_api() -> dict | None:
+    """Supabase address and PUBLIC key (anon / publishable) the sources page uses to add and remove sources.
+
+    Never the service_role key of SUPABASE_KEY: this one is written into a public page."""
+    url, key = os.environ.get("SUPABASE_URL", "").strip().rstrip("/"), os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    if key and key == os.environ.get("SUPABASE_KEY", "").strip():
+        print("::error::SUPABASE_ANON_KEY est la clé service_role : elle n'est pas écrite dans la page.")
+        return None
+    return {"url": url, "key": key} if url and key else None
+
+
+def url_key(url: str) -> str:
+    """Comparable form of an address: no scheme, no www., no trailing slash, lower case (same rule in the page)."""
+    return re.sub(r"^(https?://)?(www\.)?", "", (url or "").strip().lower()).rstrip("/")
+
+
+def manage_data(store: Store | None, counts: dict[str, int], api: dict | None, path: str = "sources.json") -> dict:
+    """What the sources page needs to replay the page changes live (registry.py rules, in JavaScript)."""
+    base, reserved = [], []
+    for s in load_base(path):
+        if not s.get("enabled", True):
+            reserved.append(s["name"])   # disabled in sources.json (LinkedIn...): not manageable from the page
+            continue
+        keys = {url_key(u) for u in (s.get("url"), s.get("site"), (s.get("fallback") or {}).get("url")) if u}
+        base.append({"n": s["name"], "d": s.get("domain", ""), "u": site_url(s), "k": sorted(keys)})
+    try:
+        changes = store.source_changes() if store else []
+    except Exception as e:   # table not created yet: the page reads it live anyway
+        logging.warning(f"Source changes not read: {e}")
+        changes = []
+    snapshot = [{k: r.get(k) for k in ("id", "at", "action", "name", "domain", "url", "author")} for r in changes]
+    return {"api": api, "base": base, "reserved": reserved, "changes": snapshot, "counts": counts,
+            "domains": [{"id": k, "label": v["label"]} for k, v in DOMAINS.items()]}
+
+
+def safe_json(data) -> str:
+    """JSON for a <script> tag: </script> inside would end the tag early; U+2028/9 break some JS parsers."""
+    return (json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            .replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+
+
 def source_entry(c: dict) -> str:
     """The sources.json line for a proposed source: `auto` finds its feed, or watches its page for new links."""
     return json.dumps({"name": c["name"], "domain": c["domain"], "type": "auto", "url": c["url"], "suggested": True},
@@ -184,7 +227,7 @@ def proposal_issue_url(c: dict, repo: str) -> str:
     return f"https://github.com/{repo}/issues/new?" + up.urlencode({"title": f"Source proposée : {c['name']}", "body": body})
 
 
-def render_candidates_html(candidates: list[dict], repo: str, agent_ran: bool) -> str:
+def render_candidates_html(candidates: list[dict], repo: str, agent_ran: bool, editable: bool = False) -> str:
     e = html.escape
     order = list(DOMAINS)
     if not candidates:
@@ -199,8 +242,12 @@ def render_candidates_html(candidates: list[dict], repo: str, agent_ran: bool) -
                            for x in c["examples"])
         queries = ", ".join(f"« {e(q)} »" for q in c["queries"])
         issue = proposal_issue_url(c, repo)
-        action = (f'<a class="btn" href="{e(issue)}" target="_blank" rel="noopener noreferrer">Proposer l\'ajout</a>'
-                  if issue else "")
+        if editable:   # added straight from the page (sources page script)
+            action = (f'<button type="button" class="btn add-cand" data-name="{e(c["name"])}" '
+                      f'data-domain="{e(c["domain"])}" data-url="{e(c["url"])}">Ajouter à la veille</button>')
+        else:
+            action = (f'<a class="btn" href="{e(issue)}" target="_blank" rel="noopener noreferrer">Proposer l\'ajout</a>'
+                      if issue else "")
         cards.append(
             f'    <article class="card cand"><h3><a href="{e(c["url"])}" target="_blank" rel="noopener noreferrer">'
             f'{e(c["name"])}<span class="ext" aria-hidden="true">↗</span></a></h3>'
@@ -214,7 +261,7 @@ def render_candidates_html(candidates: list[dict], repo: str, agent_ran: bool) -
 
 
 def render_sources_html(directory: list[dict], generated_at: datetime, days: int, candidates: list[dict] = (),
-                        repo: str = "", agent_ran: bool = False) -> str:
+                        repo: str = "", agent_ran: bool = False, manage: dict | None = None) -> str:
     with open(SOURCES_TEMPLATE, encoding="utf-8") as f:
         template = f.read()
     e = html.escape
@@ -244,26 +291,29 @@ def render_sources_html(directory: list[dict], generated_at: datetime, days: int
              if directory else "Aucun contenu collecté pour l'instant.")
     footer = f"Mis à jour le {generated_at.strftime('%d/%m/%Y')}. Un clic sur une source ouvre son site dans un nouvel onglet."
     n = len(candidates)
+    editable = bool(manage and manage.get("api"))
     cand_intro = (f"{plural(n, 'site')} hors de la veille {'ont' if n > 1 else 'a'} fourni des contenus pertinents à "
-                  "l'agent de recherche. Chaque proposition est à valider par l'équipe avant d'entrer dans sources.json."
+                  "l'agent de recherche. "
+                  + ("« Ajouter à la veille » la fait collecter dès la prochaine collecte." if editable else
+                     "Chaque proposition est à valider par l'équipe avant d'entrer dans sources.json.")
                   if n else "")
+    manage = manage or {"api": None, "base": [], "reserved": [], "changes": [], "counts": {}, "domains": []}
     return (template.replace("__INTRO__", e(intro)).replace("__FOOTER__", e(footer))
             .replace("__SECTIONS__", "\n".join(sections) or '    <p class="empty">Aucune source.</p>')
             .replace("__CAND_COUNT__", f" · {n}" if n else "").replace("__CAND_INTRO__", e(cand_intro))
-            .replace("__CANDIDATES__", render_candidates_html(list(candidates), repo, agent_ran)))
+            .replace("__CANDIDATES__", render_candidates_html(list(candidates), repo, agent_ran, editable))
+            .replace("/*__MANAGE__*/null", safe_json(manage), 1))
 
 
 def render_html(payload: dict) -> str:
     with open(TEMPLATE, encoding="utf-8") as f:
         template = f.read()
-    # </script> inside JSON would end the tag early; U+2028/9 break some JS parsers.
-    data = (json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-            .replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
-    return template.replace("/*__DATA__*/null", data, 1)
+    return template.replace("/*__DATA__*/null", safe_json(payload), 1)
 
 
 def export(output: str, days: int = WINDOW_DAYS, store: Store | None = None, index: EntityIndex | None = None,
-           with_embeddings: bool = True, client="auto", encoder=None, repo: str | None = None) -> str:
+           with_embeddings: bool = True, client="auto", encoder=None, repo: str | None = None,
+           api: dict | None | str = "env") -> str:
     store = store or get_store()
     index = index or EntityIndex.load()
     client = make_client() if client == "auto" else client
@@ -274,12 +324,13 @@ def export(output: str, days: int = WINDOW_DAYS, store: Store | None = None, ind
     with open(output, "w", encoding="utf-8") as f:
         f.write(page)
     followed = [a for a in payload["articles"] if not a.get("ag")]   # agent finds are proposals, not followed sources
-    directory = source_directory(followed, load_source_configs(index=index))
+    directory = source_directory(followed, load_source_configs(index=index, store=store))
+    manage = manage_data(store, {s["name"]: s["count"] for s in directory}, public_api() if api == "env" else api)
     sources_path = os.path.join(os.path.dirname(output) or ".", "sources.html")
     with open(sources_path, "w", encoding="utf-8") as f:
         f.write(render_sources_html(directory, datetime.fromisoformat(payload["generated_at"]), days,
                                     payload["candidate_sources"], repo,
-                                    agent_ran=len(followed) < len(payload["articles"])))
+                                    agent_ran=len(followed) < len(payload["articles"]), manage=manage))
     bin_path = os.path.join(os.path.dirname(output) or ".", "embeddings.bin")
     if vectors:
         with open(bin_path, "wb") as f:

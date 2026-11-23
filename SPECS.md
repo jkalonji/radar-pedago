@@ -35,7 +35,7 @@ Les utilisateurs accèdent au dashboard par un simple lien.
 | Rythme | **Collecte et enrichissement quotidiens**, comme Veille-IA. **Publication du tableau de bord le lundi**, avant 8 h (heure de Paris). |
 | Personnalisation | 100 % côté navigateur. Les filtres actifs (tags, recherche, période) sont mémorisés dans `localStorage` et reflétés dans l'URL, ce qui permet de partager une vue filtrée. La page s'affiche correctement même si le stockage est bloqué. |
 | Recherche sémantique | Sans serveur (§5), modèle `Xenova/paraphrase-multilingual-MiniLM-L12-v2`. Les embeddings des articles sont calculés dans le pipeline. Le navigateur encode la requête avec **le même modèle** (transformers.js), puis calcule la similarité cosinus localement. |
-| Agent de recherche | `discover.py`, **une fois par semaine** avant la publication, sur **les 6 domaines**. Le LLM écrit 4 requêtes par domaine (2 en **français**, 2 en **anglais**), sur des catégories qui tournent chaque semaine et sur les sujets chauds. Moteurs : **Tavily** et **Google News**. Les résultats sont enrichis comme les autres contenus (affichage **toujours en français**), avec le filtre de pertinence `agent`, et ne sont affichés qu'après vérification par le LLM. Champs `origin = 'agent'`, `agent_query`, `site`. Le LLM n'écrit jamais d'URL. Dans le dashboard : badge « 🔎 Découvert par l'agent », filtre d'origine, section « Découvertes de l'agent ». Un site hors veille qui fournit au moins 2 contenus pertinents sur 26 semaines devient une **source proposée** (`sources.html`), avec une issue GitHub pré-remplie : l'équipe valide avant tout ajout à `sources.json`. |
+| Agent de recherche | `discover.py`, **une fois par semaine** avant la publication, sur **les 6 domaines**. Le LLM écrit 4 requêtes par domaine (2 en **français**, 2 en **anglais**), sur des catégories qui tournent chaque semaine et sur les sujets chauds. Moteurs : **Tavily** et **Google News**. Les résultats sont enrichis comme les autres contenus (affichage **toujours en français**), avec le filtre de pertinence `agent`, et ne sont affichés qu'après vérification par le LLM. Champs `origin = 'agent'`, `agent_query`, `site`. Le LLM n'écrit jamais d'URL. Dans le dashboard : badge « 🔎 Découvert par l'agent », filtre d'origine, section « Découvertes de l'agent ». Un site hors veille qui fournit au moins 2 contenus pertinents sur 26 semaines devient une **source proposée** (`sources.html`), avec un bouton « Ajouter à la veille » (journal `source_changes`, sinon issue GitHub pré-remplie) : c'est toujours une personne qui ajoute, jamais l'agent. |
 
 ## 3. Domaines et taxonomies (à valider avec l'équipe, modifiables dans `models.py`)
 
@@ -64,7 +64,7 @@ Ajouter une école ne demande aucune modification de code. **La liste reste à f
 
 ## 4. Sources
 
-La liste fournie par l'équipe est dans `sources.json` (72 sources actives). Chaque source porte un champ `domain` et un `type` :
+La liste fournie par l'équipe est dans `sources.json` (72 sources actives). Elle peut être complétée depuis `sources.html`. Les ajouts, retraits et réactivations sont écrits dans la table `source_changes` (journal, lecture et ajout ouverts à la clé publique, aucun contrôle d'accès pour l'instant), puis appliqués par `registry.py` à la collecte suivante. Les sources ajoutées sont de type `auto`. Chaque source porte un champ `domain` et un `type` :
 
 - `rss` : flux connu (revues OpenEdition et Érudit, carnets Hypothèses…).
 - `auto` : le site est lu ; flux annoncé, sinon chemins courants (WordPress, SPIP, OJS…), sinon détection des nouveaux liens de la page.
@@ -133,6 +133,7 @@ entities.py        écoles, alias, filtre de pertinence      models.py       tax
 text.py            normalisation, langue, mots              demo_data.py    données fictives pour l'aperçu
 dashboard.py       export site/ (dashboard_template.html)   check_setup.py  diagnostic
 discover.py        agent de recherche hebdomadaire (Tavily + Google News), sources proposées
+registry.py        liste effective : sources.json + journal source_changes (ajouts / retraits depuis sources.html)
 sources.json  entities.json  glossary.json  schema.sql
 ```
 
@@ -140,6 +141,7 @@ sources.json  entities.json  glossary.json  schema.sql
 
 - LLM : `LLM_BASE_URL` pointe vers le vLLM de l'école. Aucun autre changement de code.
 - Stockage : migration de Supabase vers un PostgreSQL interne (même `schema.sql`).
+- Ajout et retrait de sources : ouverts à tous pour l'instant. Derrière l'authentification de la DSI, l'auteur pourra être pris de l'identité de la personne connectée et l'écriture limitée à l'équipe (policy RLS sur `source_changes`).
 - Hébergement : remplacement de GitHub Pages par un serveur interne avec l'authentification de la DSI. Le dashboard reste statique, donc il suffit de le servir derrière cette authentification.
 - Embeddings : déjà calculés localement, aucune dépendance externe à migrer.
 

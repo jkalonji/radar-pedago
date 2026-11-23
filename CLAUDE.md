@@ -29,5 +29,10 @@ Veille de l'ingénierie pédagogique (même socle que Luxury-monitoring, modèle
   `main.py` d'après `origin`). Sans vérification LLM, `apply_fallback` les rend non pertinents (jamais affichés).
   Le LLM n'écrit que des requêtes, jamais d'URL. Les sources proposées sont calculées à l'export
   (`dashboard.candidate_sources`, groupées par `discover.site_key`), jamais ajoutées seules à `sources.json`.
+- Sources ajoutées / retirées depuis `sources.html` : journal Supabase `source_changes` (clé publique `SUPABASE_ANON_KEY`,
+  lecture + ajout seulement, voir `schema.sql`), appliqué par `registry.apply_changes`. Toujours charger les sources via
+  `fetchers.load_sources(..., store)` / `registry.all_sources`, jamais `sources.json` seul. Les règles de rejeu sont
+  dupliquées en JavaScript dans `sources_template.html` (`state()`) : garder les deux synchronisées. La table est
+  publique : chaque ligne est revalidée (`registry.valid_change`) et échappée à l'affichage.
 - `reasoning_effort` n'est envoyé qu'aux modèles qui le supportent (`llm.llm_kwargs`).
 - Ne jamais mettre de clé dans le dépôt : `.env` est ignoré, les secrets passent par GitHub Actions.

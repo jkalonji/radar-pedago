@@ -29,6 +29,8 @@ jobs:
       - name: Check sources
         env:
           CROSSREF_MAILTO: ${{ vars.CROSSREF_MAILTO }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}   # read-only: sources added from the sources page
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           ONLY: ${{ github.event.inputs.only }}
         run: python check_sources.py --only "$ONLY"
       - uses: actions/upload-artifact@v4

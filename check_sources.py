@@ -10,16 +10,19 @@ they expose) and prints a Markdown table, also written to the GitHub Actions job
 import argparse
 import asyncio
 import logging
+import os
 import sys
 
 from entities import EntityIndex
 from fetchers import fetch_all, load_sources
 from report import write_report
+from store import get_store
 
 
 async def run(args) -> int:
     index = EntityIndex.load(args.entities)
-    sources = load_sources(args.sources, index)
+    store = get_store() if os.environ.get("SUPABASE_URL") else None   # sources added from the page live there
+    sources = load_sources(args.sources, index, store)
     if args.only:
         sources = [s for s in sources if args.only.lower() in s["name"].lower()]
     _, reports = await fetch_all(sources, index, lookback_hours=args.days * 24, store=None)

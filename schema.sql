@@ -39,7 +39,32 @@ CREATE TABLE IF NOT EXISTS seen_links (
     PRIMARY KEY (source, url)
 );
 
+-- Ajouts et retraits de sources faits depuis la page « Sources de la veille » (journal : on n'y modifie ni n'y
+-- supprime rien, la dernière action sur un nom l'emporte). Fusionnés avec sources.json par registry.py.
+CREATE TABLE IF NOT EXISTS source_changes (
+    id     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    action TEXT NOT NULL CHECK (action IN ('add', 'remove', 'restore')),
+    name   TEXT NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 120),
+    domain TEXT CHECK (domain IS NULL OR domain IN
+                       ('design_ux', 'pedagogie', 'recherche', 'enseignement_sup', 'benchmark', 'innovation_ia')),
+    url    TEXT CHECK (url IS NULL OR (url ~* '^https?://[^[:space:]]+$' AND char_length(url) <= 500)),
+    author TEXT NOT NULL DEFAULT '' CHECK (char_length(author) <= 80),
+    CHECK (action <> 'add' OR (domain IS NOT NULL AND url IS NOT NULL))
+);
+
 -- Le pipeline utilise la clé service_role (côté GitHub Actions uniquement) : activer RLS sans policy
 -- garantit que la clé publique anon ne peut rien lire.
 ALTER TABLE articles   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seen_links ENABLE ROW LEVEL SECURITY;
+
+-- La page (clé publique anon / publishable) lit le journal des sources et y ajoute des lignes ; pour l'instant
+-- n'importe quel visiteur le peut. Elle ne peut ni modifier ni supprimer une ligne, ni choisir `id` ou `at`.
+ALTER TABLE source_changes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS source_changes_read ON source_changes;
+DROP POLICY IF EXISTS source_changes_add  ON source_changes;
+CREATE POLICY source_changes_read ON source_changes FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY source_changes_add  ON source_changes FOR INSERT TO anon, authenticated WITH CHECK (true);
+REVOKE ALL ON source_changes FROM anon, authenticated;
+GRANT SELECT ON source_changes TO anon, authenticated;
+GRANT INSERT (action, name, domain, url, author) ON source_changes TO anon, authenticated;
