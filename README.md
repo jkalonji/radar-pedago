@@ -32,7 +32,7 @@ GitHub Actions (cron 05:30 UTC, tous les jours)
 | **Termes émergents** | Termes au moins 2 fois plus fréquents cette semaine que sur les 4 précédentes. Section active après 4 semaines d'historique. |
 | **Benchmark des écoles** | Affiché quand le tag Benchmark est sélectionné : carte de chaleur écoles × catégories et dernières actualités. Les écoles sont définies dans `entities.json`. |
 | **Qui en parle ?** | Sources les plus actives sur la sélection. Un clic filtre la liste. |
-| **Sources de la veille** | Page séparée (`sources.html`, lien dans l'en-tête et le pied de page) : chaque source ayant fourni au moins un contenu sur 26 semaines, une seule fois, groupée par sujet, avec un lien vers son site et son nombre de contenus. Le lien est déduit de `sources.json` ; ajouter `"site"` pour le préciser (revues Crossref). En bas de page, les **sources proposées par l'agent** (voir plus bas). |
+| **Sources de la veille** | Page séparée (`sources.html`, lien dans l'en-tête et le pied de page) : chaque source ayant fourni au moins un contenu sur 26 semaines, une seule fois, groupée par sujet, avec un lien vers son site et son nombre de contenus. Le lien est déduit de `sources.json` ; ajouter `"site"` pour le préciser (revues Crossref). Puis **« Ajouter ou retirer une source »** (voir plus bas) et les **sources proposées par l'agent**. |
 | **Contenus** | Titre en français (titre original affiché s'il a été traduit), source, date, sujet, catégorie, type et résumé. Tri par date ou par pertinence pendant une recherche. |
 
 Tous les graphiques suivent les filtres actifs. La page est autonome : aucune donnée ne part vers un serveur, et la recherche sémantique s'exécute dans le navigateur.
@@ -68,6 +68,22 @@ Points à connaître :
 
 Ajouter une source, une école ou un sigle se fait en éditant `sources.json`, `entities.json` ou `glossary.json`, sans toucher au code.
 
+### Ajouter ou retirer une source depuis la page
+
+La page `sources.html` permet à chacun, **sans compte GitHub**, de :
+
+- **ajouter une source** : nom, adresse du site et sujet. Elle est collectée en type `auto` (flux trouvé sur le site, sinon détection des nouveaux liens de la page) ;
+- **retirer une source**, qu'elle vienne de `sources.json` ou de la page. Ses contenus déjà publiés restent visibles ;
+- **réactiver** une source retirée ;
+- **ajouter en un clic une source proposée par l'agent** (bouton « Ajouter à la veille »).
+
+Chaque action est enregistrée dans la table Supabase `source_changes`. Cette table est un journal : on n'y modifie ni n'y supprime rien, et pour un même nom, c'est la dernière action qui compte. `registry.py` applique ce journal à `sources.json` au début de chaque collecte : **les changements prennent effet à la collecte suivante**, et les contenus d'une nouvelle source apparaissent à la publication du lundi. La liste affichée sur la page est lue en direct.
+
+- `sources.json` reste la liste de base, versionnée. Une source désactivée dans le fichier (LinkedIn) ne peut pas être réactivée depuis la page. Un ajout ne peut pas non plus remplacer une source du fichier qui porte le même nom.
+- **Accès** : pour l'instant, **n'importe quel visiteur de la page** peut ajouter ou retirer une source. Le champ « Votre nom » est facultatif et purement déclaratif. Comme rien n'est jamais effacé du journal, une erreur se corrige avec « Réactiver ».
+- Pour rendre durable une source ajoutée depuis la page, copiez-la dans `sources.json`, où elle bénéficie de tous les réglages (type, `filter`, `fallback`).
+- Activation : variable GitHub `SUPABASE_ANON_KEY` (voir « Mise en route »). Sans elle, la page affiche la liste mais renvoie vers `sources.json`, et les sources proposées gardent leur issue GitHub pré-remplie.
+
 ## Agent de recherche
 
 Chaque lundi, avant la publication, `discover.py` cherche sur le web, au-delà des sources suivies, de **nouveaux contenus** et de **nouvelles sources**.
@@ -76,7 +92,7 @@ Chaque lundi, avant la publication, `discover.py` cherche sur le web, au-delà d
 2. **Recherche** : chaque requête part vers **Tavily** (résultats de la semaine) et **Google News** (édition française ou anglaise selon la langue). Les réseaux sociaux et les agrégateurs sont écartés.
 3. **Tri** : les contenus déjà en base (même lien ou même titre) sont retirés. Les autres passent par l'enrichissement habituel, avec une consigne de pertinence plus stricte (pages commerciales, offres d'emploi, catalogues et hors-sujet écartés). Ils reçoivent un titre et un résumé **en français**, comme le reste.
 4. **Affichage** : un contenu de l'agent n'apparaît qu'une fois vérifié par le LLM. Il porte le badge « 🔎 Découvert par l'agent » et la requête qui l'a trouvé.
-5. **Sources proposées** : un site hors de `sources.json` qui a fourni au moins 2 contenus pertinents sur 26 semaines est proposé en bas de `sources.html`, avec des exemples, la ligne à copier dans `sources.json` (`"type": "auto"`, `"suggested": true`) et un bouton qui ouvre une **issue GitHub pré-remplie**. Rien n'est ajouté automatiquement : l'équipe valide, puis lance « Check sources ».
+5. **Sources proposées** : un site hors de `sources.json` qui a fourni au moins 2 contenus pertinents sur 26 semaines est proposé en bas de `sources.html`, avec des exemples, la ligne à copier dans `sources.json` (`"type": "auto"`, `"suggested": true`) et un bouton **« Ajouter à la veille »** qui ajoute la source depuis la page (sans `SUPABASE_ANON_KEY` : une **issue GitHub pré-remplie**). L'agent n'ajoute jamais rien de lui-même : c'est toujours une personne qui clique.
 
 Sécurité : le LLM n'écrit jamais d'adresse. Il écrit des requêtes et juge les résultats renvoyés par les moteurs. Le texte des pages est traité comme une donnée, jamais comme une consigne.
 
@@ -88,7 +104,7 @@ Coût : 24 requêtes par semaine, soit environ 100 crédits Tavily par mois. L'o
 
 | Service | À faire | Secret / variable GitHub |
 |---|---|---|
-| **Supabase** (gratuit) | Créer un projet, puis exécuter [`schema.sql`](schema.sql) dans *SQL Editor* | `SUPABASE_URL`, `SUPABASE_KEY` (clé **service_role** ou *secret*, jamais dans le navigateur) |
+| **Supabase** (gratuit) | Créer un projet, puis exécuter [`schema.sql`](schema.sql) dans *SQL Editor* | `SUPABASE_URL`, `SUPABASE_KEY` (clé **service_role** ou *secret*, jamais dans le navigateur) ; variable `SUPABASE_ANON_KEY` = clé publique **anon** ou *publishable* (*Project Settings → API Keys*), écrite dans `sources.html` pour ajouter et retirer des sources. Les droits de cette clé sont fixés par `schema.sql` : elle lit `source_changes` et y ajoute des lignes, sans aucun autre accès. |
 | **Groq** | Créer une clé API | `GROQ_API_KEY` (+ variable `GROQ_MODEL`, défaut `openai/gpt-oss-120b`) |
 | **Tavily** (agent de recherche) | Créer une clé API sur tavily.com | `TAVILY_API_KEY` (sans elle : Google News seul) |
 | **Crossref** (optionnel) | Rien à créer | variable `CROSSREF_MAILTO` : une adresse de contact, recommandée par Crossref |
@@ -99,7 +115,7 @@ Sans Supabase, rien n'est conservé entre deux exécutions (le runner GitHub est
 
 ### 2. Premier lancement
 
-1. *Actions → Radar Pédago - Check setup → Run workflow* : vérifie Supabase, la clé LLM et la clé Tavily, sans afficher de secret. **Projet Supabase créé avant l'agent de recherche** : réexécuter `schema.sql` (il n'ajoute que les colonnes manquantes `origin`, `agent_query`, `site`) ; sinon la collecte échoue.
+1. *Actions → Radar Pédago - Check setup → Run workflow* : vérifie Supabase, la clé LLM et la clé Tavily, sans afficher de secret. **Projet Supabase créé avant l'agent de recherche** : réexécuter `schema.sql` (il n'ajoute que les colonnes manquantes `origin`, `agent_query`, `site`) ; sinon la collecte échoue. **Projet créé avant l'ajout de sources depuis la page** : réexécuter `schema.sql`, qui crée la table `source_changes` et ses droits (sans elle, la collecte continue avec `sources.json` seul).
 2. *Actions → Radar Pédago - Check sources → Run workflow* : état de chaque source.
 3. *Actions → Radar Pédago - Collecte quotidienne → Run workflow* avec `backfill_days = 60` et `publish` coché. Cela charge deux mois d'historique et publie le tableau de bord.
 4. Le tableau de bord est en ligne à `https://<utilisateur>.github.io/<repo>/`. Ensuite, la collecte tourne chaque jour et la publication chaque lundi avant 8 h.
@@ -155,5 +171,6 @@ models.py          sujets, catégories, types         text.py            normali
 check_setup.py     diagnostic des secrets             check_sources.py   diagnostic des sources
 demo_data.py       données fictives pour l'aperçu     report.py          tableau d'état des sources
 discover.py        agent de recherche (Tavily, Google News) : nouveaux contenus et sources proposées
+registry.py        sources.json + ajouts et retraits faits depuis sources.html (table source_changes)
 sources.json  entities.json  glossary.json  schema.sql
 ```

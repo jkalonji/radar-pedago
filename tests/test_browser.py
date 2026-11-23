@@ -26,6 +26,9 @@ def site(tmp_path_factory):
     store = SqliteStore(str(root / "d.db"))
     store.save_articles(generate(n_weeks=8, per_week=20))
     dashboard.export(str(root / "index.html"), store=store, index=EntityIndex.load(), client=None, encoder=FakeEncoder())
+    # same data, sources page with a public API (faked by the test): built here, before Playwright owns the event loop
+    dashboard.export(str(root / "edit" / "index.html"), store=store, index=EntityIndex.load(), client=None,
+                     with_embeddings=False, api={"url": "https://fake.supabase.test", "key": "sb_publishable_test"})
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
     handler.log_message = lambda *a: None
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -175,5 +178,78 @@ def test_mobile_has_no_horizontal_scroll(site, browser):
     ctx = browser.new_context(viewport={"width": 390, "height": 844})
     page = ctx.new_page()
     page.goto(site)
+    assert page.evaluate("document.documentElement.scrollWidth") <= 390
+    ctx.close()
+
+
+@pytest.fixture(scope="module")
+def editable_site(site):
+    return site.replace("index.html", "edit/sources.html")
+
+
+def test_sources_can_be_added_removed_and_restored_from_the_page(editable_site, browser):
+    import json
+    rows, errors = [], []
+    ctx, page = new_page(browser, errors)
+
+    def api(route):
+        req = route.request
+        assert req.headers.get("apikey") == "sb_publishable_test"
+        cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "GET, POST"}
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers=cors)
+        if req.method == "POST":
+            body = json.loads(req.post_data)
+            assert set(body) <= {"action", "name", "domain", "url", "author"}
+            rows.append({**body, "id": len(rows) + 1, "at": "2026-11-23T09:00:00+00:00"})
+            return route.fulfill(status=201, headers=cors, body="")
+        return route.fulfill(status=200, headers=cors, content_type="application/json", body=json.dumps(rows))
+    page.route("https://fake.supabase.test/**", api)
+    page.goto(editable_site)
+    page.wait_for_function("document.querySelectorAll('#mg-list li').length > 0")
+    before = page.locator("#mg-list li").count()
+    assert page.is_visible("#mg-form") and page.is_hidden("#mg-off")
+
+    page.fill("#mg-name", "Blog Pédago Lab")
+    page.fill("#mg-url", "blog-pedago-lab.example/")
+    page.click("#mg-form button[type=submit]")
+    assert "Choisissez le sujet" in page.inner_text("#mg-status") and rows == []
+    page.select_option("#mg-domain", "pedagogie")
+    page.fill("#mg-author", "Léa")
+    page.click("#mg-form button[type=submit]")
+    page.wait_for_function("document.querySelector('#mg-status').classList.contains('ok')")
+    assert rows[-1] == {"action": "add", "name": "Blog Pédago Lab", "domain": "pedagogie", "author": "Léa",
+                        "url": "https://blog-pedago-lab.example/", "id": 1, "at": "2026-11-23T09:00:00+00:00"}
+    assert page.locator("#mg-list li").count() == before + 1
+    assert "ajoutée le 23/11/2026 par Léa" in page.inner_text("#mg-list")
+
+    page.fill("#mg-name", "Autre nom")   # same site, another name: refused before any request
+    page.fill("#mg-url", "https://www.blog-pedago-lab.example")
+    page.select_option("#mg-domain", "recherche")
+    page.click("#mg-form button[type=submit]")
+    assert "déjà suivi" in page.inner_text("#mg-status") and len(rows) == 1
+
+    page.click('#mg-list button[aria-label="Retirer Blog Pédago Lab"]')
+    page.wait_for_selector("#mg-removed")
+    assert rows[-1]["action"] == "remove" and "Blog Pédago Lab" in page.inner_text("#mg-removed")
+    page.locator("#mg-removed button", has_text="Réactiver").click()
+    page.wait_for_function("!document.querySelector('#mg-removed')")
+    assert rows[-1]["action"] == "restore" and page.locator("#mg-list li").count() == before + 1
+
+    page.fill("#mg-filter", "pedago lab")   # accents and case ignored
+    assert page.locator("#mg-list li").count() == 1
+    page.fill("#mg-filter", "")
+
+    cand = page.locator("#proposees .add-cand").first
+    name = cand.get_attribute("data-name")
+    cand.click()
+    page.wait_for_function("document.querySelector('#proposees .add-cand').textContent.startsWith('Ajoutée')")
+    assert rows[-1]["name"] == name and rows[-1]["action"] == "add" and "Ajoutée" in cand.inner_text()
+    assert errors == []
+    ctx.close()
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})   # the form fits on a phone
+    page = ctx.new_page()
+    page.goto(editable_site)
     assert page.evaluate("document.documentElement.scrollWidth") <= 390
     ctx.close()

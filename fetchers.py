@@ -22,6 +22,7 @@ import requests
 
 from entities import EntityIndex
 from models import Article, now_utc
+from registry import all_sources
 from text import clean_html, guess_lang, normalize
 
 USER_AGENT = "Mozilla/5.0 (compatible; RadarPedago/1.0; +https://github.com/jkalonji)"
@@ -471,10 +472,9 @@ async def fetch_source(session, source: dict, lookback_hours: int, store=None) -
 # Orchestration
 # ---------------------------------------------------------------------------
 
-def load_sources(path: str = "sources.json", index: EntityIndex | None = None) -> list[dict]:
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    sources = [s for s in data["sources"] if "name" in s and s.get("enabled", True)]
+def load_sources(path: str = "sources.json", index: EntityIndex | None = None, store=None) -> list[dict]:
+    """Enabled sources: sources.json + the changes made from the sources page (when a store is given)."""
+    sources = [s for s in all_sources(path, store) if s.get("enabled", True)]
     if index is not None:
         sources += index.school_sources()
     logging.info(f"Loaded {len(sources)} enabled sources")

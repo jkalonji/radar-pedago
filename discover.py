@@ -33,6 +33,7 @@ from entities import EntityIndex
 from fetchers import finalize, get_text, gnews_url, looks_like_feed, parse_feed_date
 from llm import chat_json, make_client, model_name
 from models import DOMAINS, Article, now_utc
+from registry import all_sources
 from store import Store, get_store
 from text import clean_html, guess_lang, normalize
 from topics import weekly_hot_topics
@@ -104,10 +105,9 @@ def known_sites(sources: list[dict]) -> dict[str, str]:
     return out
 
 
-def load_all_sources(path: str = "sources.json") -> list[dict]:
-    """Disabled sources included: a disabled site (LinkedIn...) must not be proposed again."""
-    with open(path, encoding="utf-8") as f:
-        return [s for s in json.load(f)["sources"] if "name" in s]
+def load_all_sources(path: str = "sources.json", store=None) -> list[dict]:
+    """Disabled sources included: a disabled or removed site (LinkedIn...) must not be proposed again."""
+    return all_sources(path, store)
 
 
 # ---------------------------------------------------------------------------
@@ -313,7 +313,7 @@ async def run_agent(store: Store, index: EntityIndex, client, tavily_key: str = 
     pairs = await search_all(plans, tavily_key)
     stored = store.load_articles(60, relevant_only=False)
     known_titles = {title_key(t) for r in stored for t in (r.get("title"), r.get("title_fr")) if t}
-    sites = known_sites(load_all_sources(sources_path) + index.school_sources())
+    sites = known_sites(load_all_sources(sources_path, store) + index.school_sources())
     articles = finalize(select_new(pairs, sites, store.known_urls(KNOWN_DAYS), known_titles, now), index)
     logging.info(f"Agent: {len(pairs)} results, {len(articles)} new")
     if dry_run:

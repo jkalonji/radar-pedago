@@ -69,20 +69,67 @@ footer{color:var(--muted);font-size:12.5px;padding:8px 0 40px}
 .btn:hover{filter:brightness(1.1)}
 details summary{cursor:pointer;font-size:12.5px;color:var(--ink2)}
 pre{margin:6px 0 0;padding:8px 10px;background:var(--hover);border:1px solid var(--border);border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
-@media (max-width:900px){.grid{columns:1}}
+/* add / remove sources from the page (source_changes table) */
+.manage{margin-top:26px}
+.manage>h2{font-size:18px;margin:0 0 4px}
+.addform{display:grid;grid-template-columns:1.2fr 1.6fr 1fr 1fr auto;gap:10px;align-items:end}
+.addform label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink2);min-width:0}
+.addform input,.addform select,.tools input{font:inherit;font-size:14px;color:var(--ink);background:var(--plane);border:1px solid var(--grid);border-radius:8px;padding:6px 9px;min-width:0;width:100%}
+.addform .opt{color:var(--muted)}
+button.btn{font:inherit;font-size:13px;cursor:pointer}
+button.btn:disabled{cursor:default;opacity:.6;filter:none}
+.status{margin:10px 0 0;font-size:13.5px}.status:empty{display:none}
+.status.ok{color:var(--dom-6)}.status.err{color:#c0392b}
+.tools{display:flex;gap:10px;align-items:center;margin:16px 0 12px;flex-wrap:wrap}
+.tools input{max-width:320px}
+.tools .n{color:var(--muted);font-size:12.5px}
+.mg h3{font-size:15px;font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.mg h3 .n{font-weight:400;font-size:12.5px;color:var(--muted)}
+.mg li{align-items:center}
+.mg li .who{display:block;color:var(--muted);font-size:12px}
+.mg li .new{color:var(--dom-6)}
+.mg li>div{min-width:0}
+.linkbtn{border:1px solid var(--grid);background:none;border-radius:7px;padding:3px 9px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.linkbtn:hover{background:var(--hover);color:var(--ink)}
+.note{color:var(--muted);font-size:13.5px;margin:0}
+@media (max-width:900px){.grid{columns:1}.addform{grid-template-columns:1fr 1fr}.addform .go{grid-column:1/-1}}
+@media (max-width:520px){.addform{grid-template-columns:1fr}}
 @media (forced-colors:active){.sw{forced-color-adjust:none}}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
   <div><h1>Sources de la veille</h1><p>Radar Pédago · veille de l'ingénierie pédagogique</p></div>
-  <a class="back" href="index.html">← Retour au tableau de bord</a>
+  <div><a class="back" href="#gerer">Ajouter ou retirer une source</a> · <a class="back" href="index.html">← Retour au tableau de bord</a></div>
 </div></header>
 <main class="wrap">
   <p class="intro">__INTRO__</p>
   <div class="grid">
 __SECTIONS__
   </div>
+  <section class="manage" id="gerer" aria-labelledby="gerer-h">
+    <h2 id="gerer-h">Ajouter ou retirer une source</h2>
+    <p class="intro">Les changements sont pris en compte à la prochaine collecte (chaque matin vers 6 h 30). Les contenus d'une
+      nouvelle source apparaissent dans le tableau de bord à la publication suivante, le lundi. Une source retirée n'est
+      plus collectée, mais ses contenus déjà publiés restent visibles.</p>
+    <div class="card">
+      <form class="addform" id="mg-form" novalidate hidden>
+        <label>Nom de la source<input id="mg-name" maxlength="120" required placeholder="ex. Blog Pédago Lab"></label>
+        <label>Adresse du site<input id="mg-url" type="url" maxlength="500" required placeholder="https://…"></label>
+        <label>Sujet<select id="mg-domain" required><option value="">Choisir…</option></select></label>
+        <label><span>Votre nom <span class="opt">(facultatif)</span></span><input id="mg-author" maxlength="80"></label>
+        <button class="btn go" type="submit">Ajouter la source</button>
+      </form>
+      <p class="note" id="mg-off" hidden>L'ajout et le retrait depuis cette page ne sont pas activés sur cette publication
+        (variable <code>SUPABASE_ANON_KEY</code> absente) : modifiez <code>sources.json</code>.</p>
+      <p class="status" id="mg-status" role="status" aria-live="polite"></p>
+    </div>
+    <div class="tools">
+      <input id="mg-filter" type="search" placeholder="Filtrer les sources suivies…" aria-label="Filtrer les sources suivies">
+      <span class="n" id="mg-count"></span>
+    </div>
+    <div class="grid mg" id="mg-list"></div>
+  </section>
   <section class="proposed" id="proposees" aria-labelledby="proposees-h">
     <h2 id="proposees-h">🔎 Sources proposées par l'agent<span class="n">__CAND_COUNT__</span></h2>
     <p class="intro">__CAND_INTRO__</p>
@@ -92,5 +139,169 @@ __CANDIDATES__
   </section>
 </main>
 <footer class="wrap">__FOOTER__</footer>
+<script id="manage" type="application/json">/*__MANAGE__*/null</script>
+<script>
+"use strict";
+// Add / remove sources: rows appended to the Supabase table source_changes (public key, see schema.sql), replayed
+// over sources.json with the rules of registry.py (keep both in sync). The pipeline applies them on its next run.
+(() => {
+  const M = JSON.parse(document.getElementById("manage").textContent);
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+  const urlKey = u => String(u || "").trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, "").replace(/\/+$/, "");
+  const URL_RE = /^https?:\/\/[^\s\/$.?#][^\s]*$/i;
+  const DOMS = M.domains, DOM_IDS = DOMS.map(d => d.id);
+  const date = s => { const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("fr-FR"); };
+  const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
+  };
+  let changes = M.changes || [];
+
+  function validChange(r) {
+    const name = String(r.name || "").trim();
+    if (!["add", "remove", "restore"].includes(r.action) || !name || name.length > 120 || String(r.author || "").length > 80) return false;
+    if (r.action === "add") return DOM_IDS.includes(r.domain) && String(r.url || "").length <= 500 && URL_RE.test(r.url || "");
+    return true;
+  }
+
+  // registry.apply_changes, in JavaScript
+  function state() {
+    const src = new Map(M.base.map(b => [b.n, {...b, base: true}]));
+    const reserved = new Set(M.reserved || []);
+    const removed = new Map();
+    for (const r of [...changes].sort((a, b) => (a.id || 0) - (b.id || 0))) {
+      if (!validChange(r)) continue;
+      const name = r.name.trim();
+      if (r.action === "add") {
+        if (reserved.has(name) || src.get(name)?.base) continue;
+        src.set(name, {n: name, d: r.domain, u: r.url, k: [urlKey(r.url)], added: r.at || "", by: r.author || ""});
+        removed.delete(name);
+      } else if (src.has(name)) {
+        if (r.action === "remove") removed.set(name, {at: r.at || "", by: r.author || ""});
+        else removed.delete(name);
+      }
+    }
+    const active = [], gone = [];
+    for (const s of src.values()) (removed.has(s.n) ? gone.push({...s, removed: removed.get(s.n)}) : active.push(s));
+    const byName = (a, b) => a.n.localeCompare(b.n, "fr", {sensitivity: "base"});
+    return {active: active.sort(byName), gone: gone.sort(byName)};
+  }
+
+  // -- Supabase REST (PostgREST) ----------------------------------------
+  const headers = () => {
+    const h = {apikey: M.api.key};
+    if (M.api.key.startsWith("eyJ")) h.Authorization = `Bearer ${M.api.key}`;   // legacy anon JWT
+    return h;
+  };
+  async function load() {
+    const out = [];
+    for (let offset = 0; ; offset += 1000) {
+      const r = await fetch(`${M.api.url}/rest/v1/source_changes?select=id,at,action,name,domain,url,author&order=id.asc&limit=1000&offset=${offset}`, {headers: headers()});
+      if (!r.ok) throw new Error(`lecture impossible (${r.status})`);
+      const page = await r.json();
+      out.push(...page);
+      if (page.length < 1000) return out;
+    }
+  }
+  async function send(row) {
+    const r = await fetch(`${M.api.url}/rest/v1/source_changes`, {
+      method: "POST", headers: {...headers(), "Content-Type": "application/json", Prefer: "return=minimal"},
+      body: JSON.stringify({...row, author: $("mg-author").value.trim().slice(0, 80)}),
+    });
+    if (!r.ok) throw new Error(`enregistrement refusé (${r.status})`);
+    try { changes = await load(); } catch (e) { changes = [...changes, {...row, id: Infinity, at: new Date().toISOString()}]; }
+    render();
+  }
+  function say(msg, kind = "") { const el = $("mg-status"); el.textContent = msg; el.className = `status ${kind}`; }
+  async function act(row, okMsg, btn) {
+    if (btn) btn.disabled = true;
+    try { await send(row); say(okMsg, "ok"); }
+    catch (e) { say(`Échec : ${e.message}. Réessayez dans un instant.`, "err"); if (btn) btn.disabled = false; }
+    finally { if (btn && btn.form) btn.disabled = false; }   // the form stays usable; list buttons are re-rendered
+  }
+
+  // -- rendering ----------------------------------------------------------
+  function item(s) {
+    const name = s.u ? `<a href="${esc(s.u)}" target="_blank" rel="noopener noreferrer">${esc(s.n)}<span class="ext" aria-hidden="true">↗</span></a>` : `<span>${esc(s.n)}</span>`;
+    const by = x => x ? ` par ${esc(x)}` : "";
+    const n = M.counts[s.n] || 0;
+    let who = n ? plural(n, "contenu") + " sur 26 semaines" : "";
+    if (s.removed) who = `retirée le ${date(s.removed.at)}${by(s.removed.by)}`;
+    else if (s.added) who = `<span class="new">ajoutée le ${date(s.added)}${by(s.by)}</span>${n ? " · " + who : " · en attente de collecte"}`;
+    const btn = !M.api ? "" : s.removed
+      ? `<button type="button" class="linkbtn" data-act="restore" data-n="${esc(s.n)}">Réactiver</button>`
+      : `<button type="button" class="linkbtn" data-act="remove" data-n="${esc(s.n)}" aria-label="Retirer ${esc(s.n)}">Retirer</button>`;
+    return `<li><div>${name}${who ? `<span class="who">${who}</span>` : ""}</div>${btn}</li>`;
+  }
+  function render() {
+    const {active, gone} = state();
+    const q = urlKey($("mg-filter").value).normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const match = s => !q || (s.n + " " + (s.u || "")).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q);
+    const cards = DOMS.map((d, i) => {
+      const group = active.filter(s => s.d === d.id && match(s));
+      return group.length ? `<section class="card"><h3><span class="sw" style="background:var(--dom-${i + 1})"></span>${esc(d.label)} <span class="n">· ${plural(group.length, "source")}</span></h3><ul>${group.map(item).join("")}</ul></section>` : "";
+    });
+    const out = gone.filter(match);
+    if (out.length) cards.push(`<section class="card" id="mg-removed"><h3>Sources retirées <span class="n">· ${out.length}</span></h3><ul>${out.map(item).join("")}</ul></section>`);
+    $("mg-list").innerHTML = cards.join("") || `<p class="empty">Aucune source ne correspond.</p>`;
+    $("mg-count").textContent = `${plural(active.length, "source")} suivie${active.length > 1 ? "s" : ""}${gone.length ? ` · ${gone.length} retirée${gone.length > 1 ? "s" : ""}` : ""}`;
+    const followed = new Set(active.map(s => s.n));
+    document.querySelectorAll(".add-cand").forEach(b => {
+      const added = followed.has(b.dataset.name) || active.some(s => s.k.includes(urlKey(b.dataset.url)));
+      if (added) { b.disabled = true; b.textContent = "Ajoutée ✓"; }
+    });
+  }
+
+  // -- events -------------------------------------------------------------
+  $("mg-filter").addEventListener("input", render);
+  if (M.api) {
+    $("mg-form").hidden = false;
+    $("mg-domain").insertAdjacentHTML("beforeend", DOMS.map(d => `<option value="${esc(d.id)}">${esc(d.label)}</option>`).join(""));
+    $("mg-author").value = store.get("radar-author");
+    $("mg-author").addEventListener("change", e => store.set("radar-author", e.target.value.trim()));
+    $("mg-form").addEventListener("submit", e => {
+      e.preventDefault();
+      const name = $("mg-name").value.trim().replace(/\s+/g, " ");
+      let url = $("mg-url").value.trim();
+      if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
+      const domain = $("mg-domain").value;
+      const {active, gone} = state();
+      const same = list => list.find(s => s.n.toLowerCase() === name.toLowerCase());
+      const site = active.find(s => s.k.includes(urlKey(url)));
+      const problem = !name ? "Indiquez le nom de la source."
+        : !URL_RE.test(url) || url.length > 500 ? "L'adresse doit être celle d'un site web (https://…)."
+        : !domain ? "Choisissez le sujet de la source."
+        : same(active) ? `Une source « ${same(active).n} » est déjà suivie.`
+        : same(gone) ? `« ${same(gone).n} » a été retirée : utilisez « Réactiver » dans la liste des sources retirées.`
+        : (M.reserved || []).some(n => n.toLowerCase() === name.toLowerCase()) ? "Ce nom est réservé à une source désactivée dans sources.json."
+        : site ? `Ce site est déjà suivi : « ${site.n} ».` : "";
+      if (problem) { say(problem, "err"); return; }
+      act({action: "add", name, domain, url}, `« ${name} » est ajoutée : elle sera collectée dès la prochaine collecte.`, e.submitter)
+        .then(() => { if ($("mg-status").classList.contains("ok")) { $("mg-name").value = ""; $("mg-url").value = ""; $("mg-domain").value = ""; } });
+    });
+    $("mg-list").addEventListener("click", e => {
+      const b = e.target.closest("button[data-act]");
+      if (!b) return;
+      const name = b.dataset.n;
+      act({action: b.dataset.act, name}, b.dataset.act === "remove"
+        ? `« ${name} » est retirée : elle ne sera plus collectée. « Réactiver » annule le retrait.`
+        : `« ${name} » est réactivée : elle sera de nouveau collectée.`, b);
+    });
+    document.querySelectorAll(".add-cand").forEach(b => b.addEventListener("click", () => {
+      const {active} = state();
+      if (active.some(s => s.n.toLowerCase() === b.dataset.name.toLowerCase())) { say(`« ${b.dataset.name} » est déjà suivie.`, "err"); return; }
+      act({action: "add", name: b.dataset.name, domain: b.dataset.domain, url: b.dataset.url},
+          `« ${b.dataset.name} » est ajoutée : elle sera collectée dès la prochaine collecte.`, b);
+    }));
+    load().then(rows => { changes = rows; render(); })
+      .catch(e => say(`Liste en direct indisponible (${e.message}) : affichage de l'état au moment de la publication.`, "err"));
+  } else {
+    $("mg-off").hidden = false;
+  }
+  render();
+})();
+</script>
 </body>
 </html>

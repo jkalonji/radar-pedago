@@ -19,7 +19,7 @@ ARTICLE_COLUMNS = [
 _ADDED_COLUMNS = {"origin": "TEXT DEFAULT 'source'", "agent_query": "TEXT DEFAULT ''", "site": "TEXT DEFAULT ''"}
 _JSON_COLUMNS = {"domains", "entities"}
 _BOOL_COLUMNS = {"published_is_estimated", "classified", "relevant"}
-_ORDER = {"articles": ["url"], "seen_links": ["source", "url"]}   # unique keys: stable paging
+_ORDER = {"articles": ["url"], "seen_links": ["source", "url"], "source_changes": ["id"]}   # unique keys: stable paging
 
 
 def article_row(a: Article) -> dict:
@@ -49,6 +49,9 @@ class Store(ABC):
 
     @abstractmethod
     def _select(self, table: str, gte: tuple[str, str] | None = None, eq: dict | None = None) -> list[dict]: ...
+
+    @abstractmethod
+    def _insert(self, table: str, row: dict) -> None: ...
 
     # -- articles ----------------------------------------------------------
     def known_urls(self, days: int) -> set[str]:
@@ -83,6 +86,15 @@ class Store(ABC):
         if rows:
             self._upsert("seen_links", rows, "source,url")
 
+    # -- source changes made from the sources page (registry.py) ----------
+    def source_changes(self) -> list[dict]:
+        return sorted(self._select("source_changes"), key=lambda r: r["id"])
+
+    def add_source_change(self, action: str, name: str, domain: str | None = None, url: str | None = None,
+                          author: str = "") -> None:
+        """Same row as the page writes (tests, local use); `id` and `at` are set by the database."""
+        self._insert("source_changes", {"action": action, "name": name, "domain": domain, "url": url, "author": author})
+
 
 # ---------------------------------------------------------------------------
 # SQLite
@@ -98,6 +110,9 @@ CREATE TABLE IF NOT EXISTS articles (
     collected_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS seen_links (
     source TEXT NOT NULL, url TEXT NOT NULL, first_seen TEXT NOT NULL, PRIMARY KEY (source, url));
+CREATE TABLE IF NOT EXISTS source_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')),
+    action TEXT NOT NULL, name TEXT NOT NULL, domain TEXT, url TEXT, author TEXT NOT NULL DEFAULT '');
 """
 
 
@@ -150,6 +165,10 @@ class SqliteStore(Store):
             sql += " WHERE " + " AND ".join(clauses)
         return [self._from_db(r) for r in self.conn.execute(sql, params)]
 
+    def _insert(self, table, row):
+        self.conn.execute(f"INSERT INTO {table} ({','.join(row)}) VALUES ({','.join('?' * len(row))})", list(row.values()))
+        self.conn.commit()
+
 
 # ---------------------------------------------------------------------------
 # Supabase
@@ -184,6 +203,12 @@ class SupabaseStore(Store):
         try:
             for i in range(0, len(rows), self.CHUNK):
                 self.client.table(table).upsert(rows[i:i + self.CHUNK], on_conflict=conflict).execute()
+        except Exception as e:
+            raise _explain(e) from e
+
+    def _insert(self, table, row):
+        try:
+            self.client.table(table).insert(row).execute()
         except Exception as e:
             raise _explain(e) from e
 

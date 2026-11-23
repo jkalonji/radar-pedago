@@ -34,7 +34,7 @@ def source_filters(path: str) -> dict[str, str]:
 async def run(args: argparse.Namespace) -> int:
     index = EntityIndex.load(args.entities)
     store = get_store()
-    sources = load_sources(args.sources, index)
+    sources = load_sources(args.sources, index, store)
     lookback = (args.backfill_days * 24) if args.backfill_days else args.lookback_hours
 
     articles, reports = await fetch_all(sources, index, lookback_hours=lookback, store=store)
