@@ -159,3 +159,29 @@ def test_llm_env(monkeypatch):
     monkeypatch.setenv("LLM_MODEL", "deepseek")
     client = llm.make_client()
     assert str(client.base_url).startswith("http://gpu.epita.local:8000/v1") and llm.model_name() == "deepseek"
+
+
+async def test_chat_json_always_mentions_json():
+    """Groq answers 400 to json_object mode when no message contains the word 'json' (hot topic naming did)."""
+    from llm import chat_json
+    from topics import name_clusters
+    sent = []
+
+    class Client:
+        class chat:
+            class completions:
+                @staticmethod
+                async def create(messages, **kw):
+                    if "json" not in " ".join(m["content"] for m in messages).lower():
+                        raise RuntimeError("400 'messages' must contain the word 'json'")
+                    sent.append(messages)
+                    msg = type("M", (), {"content": '{"labels": [{"id": 0, "label": "Évaluation par compétences"}]}'})
+                    return type("R", (), {"choices": [type("C", (), {"message": msg})]})
+    assert (await chat_json(Client, "Nomme ce sujet.", "[1]"))["labels"]
+    assert sent[-1][0]["content"].endswith("Réponds en JSON.")
+    await chat_json(Client, "Réponds avec un objet JSON.", "x")
+    assert sent[-1][0]["content"] == "Réponds avec un objet JSON."   # unchanged when already there
+    clusters = [{"phrase": "evaluation competences", "domain": "pedagogie", "label": "evaluation competences",
+                 "articles": [{"title": "Évaluer par compétences", "title_fr": "Évaluer par compétences"}]}]
+    out = await name_clusters(clusters, Client)
+    assert out[0]["label"] == "Évaluation par compétences"
